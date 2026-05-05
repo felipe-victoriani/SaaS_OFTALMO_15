@@ -29,7 +29,7 @@ window.Modules.admin = {
             <i data-lucide="shield" width="24" height="24" aria-hidden="true"></i>
             Administração
           </h1>
-          <p class="module-subtitle">Gestão de usuários, metas, relatórios e auditoria</p>
+          <p class="module-subtitle">Gestão de usuários, metas e relatórios</p>
         </div>
 
         <!-- Cards de resumo -->
@@ -42,7 +42,7 @@ window.Modules.admin = {
           <button class="tab-btn active" role="tab" aria-selected="true" data-tab="usuarios">Usuários</button>
           <button class="tab-btn" role="tab" aria-selected="false" data-tab="metas">Metas</button>
           <button class="tab-btn" role="tab" aria-selected="false" data-tab="relatorios">Relatórios</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="auditoria">Auditoria</button>
+
         </div>
         <div id="admin-tab-content" class="tab-content-area"></div>
       </div>
@@ -125,7 +125,6 @@ window.Modules.admin = {
     if (aba === "usuarios") this._renderUsuarios(content);
     if (aba === "metas") this._renderMetas(content);
     if (aba === "relatorios") this._renderRelatorios(content);
-    if (aba === "auditoria") this._renderAuditoria(content);
   },
 
   // ---- ABA: USUÁRIOS ----
@@ -496,89 +495,5 @@ window.Modules.admin = {
         </div>
       `;
       });
-  },
-
-  // ---- ABA: AUDITORIA ----
-  async _renderAuditoria(container) {
-    container.innerHTML = `
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Log de Auditoria</span>
-          <div class="table-actions" id="audit-acoes"></div>
-        </div>
-        <div class="filter-bar mb-2">
-          <input type="text" id="audit-busca" class="filter-input" placeholder="Buscar por ação, módulo ou usuário…">
-        </div>
-        <div class="loading-wrapper" id="audit-loading"><div class="spinner"></div>Carregando...</div>
-        <div class="table-scroll" id="audit-table-wrap" style="display:none">
-          <table class="data-table" id="tabela-auditoria" aria-label="Log de auditoria">
-            <thead>
-              <tr>
-                <th scope="col">Data/Hora</th>
-                <th scope="col">Usuário</th>
-                <th scope="col">Ação</th>
-                <th scope="col">Módulo</th>
-                <th scope="col">ID Registro</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-auditoria"></tbody>
-          </table>
-        </div>
-      </div>
-    `;
-
-    const acoes = container.querySelector("#audit-acoes");
-    if (acoes)
-      acoes.appendChild(
-        criarBotaoExportar("tabela-auditoria", "Auditoria", "auditoria"),
-      );
-    lucide.createIcons({ nodes: [container] });
-
-    let todosLogs = [];
-    try {
-      const snap = await lerUmaVez(`auditoria`);
-      todosLogs = snap
-        ? Object.values(snap).sort(
-            (a, b) => (b.timestamp || 0) - (a.timestamp || 0),
-          )
-        : [];
-    } catch (_) {}
-
-    document.getElementById("audit-loading").style.display = "none";
-    document.getElementById("audit-table-wrap").style.display = "";
-
-    const renderLog = (lista) => {
-      const tbody = document.getElementById("tbody-auditoria");
-      if (!tbody) return;
-      tbody.innerHTML =
-        lista
-          .slice(0, 200)
-          .map(
-            (r) => `
-        <tr>
-          <td>${r.timestamp ? new Date(r.timestamp).toLocaleString("pt-BR") : "—"}</td>
-          <td>${r.usuario_nome || r.uid || "—"}</td>
-          <td><span class="badge badge-info">${r.acao || "—"}</span></td>
-          <td>${r.modulo || "—"}</td>
-          <td><code>${r.registro_id || "—"}</code></td>
-        </tr>
-      `,
-          )
-          .join("") ||
-        `<tr><td colspan="5"><div class="table-empty"><p>Nenhum log encontrado.</p></div></td></tr>`;
-    };
-
-    renderLog(todosLogs);
-    container.querySelector("#audit-busca")?.addEventListener("input", (e) => {
-      const q = e.target.value.toLowerCase();
-      renderLog(
-        todosLogs.filter(
-          (r) =>
-            (r.acao || "").includes(q) ||
-            (r.modulo || "").includes(q) ||
-            (r.usuario_nome || "").toLowerCase().includes(q),
-        ),
-      );
-    });
   },
 };
