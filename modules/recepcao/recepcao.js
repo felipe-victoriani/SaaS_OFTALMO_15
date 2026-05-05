@@ -198,7 +198,8 @@ window.Modules.recepcao = {
     const tipo = document.getElementById("rec-tipo")?.value;
     const origem = document.getElementById("rec-origem")?.value;
     const conv = document.getElementById("rec-convenio")?.value;
-    const valor = parseFloat(document.getElementById("rec-valor")?.value || 0);
+    // CORRIGIDO: usa getValorNumerico para ler campo formatado como moeda
+    const valor = getValorNumerico(document.getElementById("rec-valor"));
     const editId = document.getElementById("rec-edit-id")?.value;
 
     if (!nome || !medico || !tipo || !origem) {
@@ -233,6 +234,7 @@ window.Modules.recepcao = {
         const id = await criar(caminho, dados);
         await registrarAuditoria("criar", "recepcao", id, null);
         Alerts.sucesso("Atendimento registrado!");
+        if (txt) txt.textContent = "Salvar Atendimento";
       }
 
       document.getElementById("form-recepcao")?.reset();
@@ -242,6 +244,10 @@ window.Modules.recepcao = {
       Alerts.erro("Erro ao salvar atendimento.");
     } finally {
       if (btn) btn.disabled = false;
+      // Garante que o texto volta ao padrão mesmo em caso de erro
+      if (txt && !document.getElementById("rec-edit-id")?.value) {
+        txt.textContent = "Salvar Atendimento";
+      }
     }
   },
 
@@ -252,7 +258,8 @@ window.Modules.recepcao = {
     document.getElementById("rec-medico").value = r.medico || "";
     document.getElementById("rec-tipo").value = r.tipo_atendimento || "";
     document.getElementById("rec-origem").value = r.origem || "";
-    document.getElementById("rec-valor").value = r.valor || 0;
+    // CORRIGIDO: usa setValorMoeda para preencher campo formatado
+    setValorMoeda(document.getElementById("rec-valor"), r.valor || 0);
     document.getElementById("rec-edit-id").value = id;
 
     const grpConv = document.getElementById("grupo-convenio");

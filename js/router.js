@@ -111,7 +111,9 @@ async function processarRota() {
     const cssHref = `modules/${rota}/${rota}.css`;
     if (!document.querySelector(`link[href="${cssHref}"]`)) {
       const cssRes = await fetch(cssHref, { method: "HEAD" });
-      if (cssRes.ok) {
+      // CORRIGIDO: verifica content-type para evitar carregar HTML de 404 redirect como CSS
+      const ct = cssRes.headers.get("content-type") || "";
+      if (cssRes.ok && ct.includes("css")) {
         const link = document.createElement("link");
         link.rel = "stylesheet";
         link.href = cssHref;

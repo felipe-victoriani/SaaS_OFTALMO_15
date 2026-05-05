@@ -40,10 +40,11 @@ window.Modules.faturamento = {
     const lancados = honorariosArr.filter((r) => r.lancado);
 
     // Construir mapa por médico a partir dos lançamentos
+    // CORRIGIDO: cada médico recebe seu próprio valor no papel que exerceu na cirurgia
     const porMedico = {};
-    lancados.forEach((r) => {
-      const nome = r.nome_cirurgiao || "Desconhecido";
-      if (!isAdm && r.uid_cirurgiao && r.uid_cirurgiao !== uid) return;
+
+    const _garantir = (nome) => {
+      if (!nome || nome === "—") return;
       if (!porMedico[nome])
         porMedico[nome] = {
           cirurgiao: 0,
@@ -51,10 +52,33 @@ window.Modules.faturamento = {
           auxiliar: 0,
           instrumentador: 0,
         };
-      porMedico[nome].cirurgiao += r.honorario_cirurgiao_pf || 0;
-      porMedico[nome].lio_cir += r.lio_parte_cirurgiao || 0;
-      porMedico[nome].auxiliar += r.honorario_auxiliar_pf || 0;
-      porMedico[nome].instrumentador += r.honorario_instrumentador_pf || 0;
+    };
+
+    lancados.forEach((r) => {
+      // Cirurgião
+      const nomeCir = r.nome_cirurgiao || "Desconhecido";
+      if (isAdm || !r.uid_cirurgiao || r.uid_cirurgiao === uid) {
+        _garantir(nomeCir);
+        if (porMedico[nomeCir]) {
+          porMedico[nomeCir].cirurgiao += r.honorario_cirurgiao_pf || 0;
+          porMedico[nomeCir].lio_cir += r.lio_parte_cirurgiao || 0;
+        }
+      }
+
+      // Auxiliar — acumula no card do próprio auxiliar
+      const nomeAux = r.nome_auxiliar;
+      if (nomeAux && nomeAux !== "—" && nomeAux !== "") {
+        _garantir(nomeAux);
+        porMedico[nomeAux].auxiliar += r.honorario_auxiliar_pf || 0;
+      }
+
+      // Instrumentador — acumula no card do próprio instrumentador
+      const nomeInst = r.nome_instrumentador;
+      if (nomeInst && nomeInst !== "—" && nomeInst !== "") {
+        _garantir(nomeInst);
+        porMedico[nomeInst].instrumentador +=
+          r.honorario_instrumentador_pf || 0;
+      }
     });
 
     // Garantir que médicos com meta cadastrada apareçam mesmo sem lançamentos
@@ -138,7 +162,7 @@ window.Modules.faturamento = {
                </div>`
               : "";
           return `
-          <div class="card">
+          <div class="card" style="border-left:4px solid var(--accent)">
             <div class="card-header">
               <span class="card-title">${nome}</span>
               <div class="card-icon icon-blue">
@@ -154,10 +178,6 @@ window.Modules.faturamento = {
               <div style="display:flex;justify-content:space-between">
                 <span>Como Auxiliar</span>
                 <strong style="color:var(--text-primary)">${formatarMoeda(d.auxiliar)}</strong>
-              </div>
-              <div style="display:flex;justify-content:space-between">
-                <span>Como Instrumentador</span>
-                <strong style="color:var(--text-primary)">${formatarMoeda(d.instrumentador)}</strong>
               </div>
               <div style="border-top:1px solid var(--border);margin:.2rem 0"></div>
             </div>

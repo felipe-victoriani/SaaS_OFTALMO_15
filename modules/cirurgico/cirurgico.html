@@ -158,13 +158,15 @@
                   <label class="form-label" for="cir-valor-lio"
                     >Valor da LIO (R$) <span class="required">*</span></label
                   >
+                  <!-- CORRIGIDO: type=text com inputmode para formatação automática de moeda -->
                   <input
-                    type="number"
+                    type="text"
+                    inputmode="numeric"
                     id="cir-valor-lio"
                     class="form-input"
-                    min="0"
-                    step="0.01"
-                    placeholder="0,00"
+                    oninput="formatarMoedaInput(this)"
+                    placeholder="R$ 0,00"
+                    data-valor="0"
                   />
                 </div>
               </div>
@@ -175,12 +177,15 @@
                 >Valor Total da Cirurgia (R$)
                 <span class="required">*</span></label
               >
+              <!-- CORRIGIDO: type=text com inputmode para formatação automática de moeda -->
               <input
-                type="number"
+                type="text"
+                inputmode="numeric"
                 id="cir-valor-total"
                 class="form-input"
-                min="0"
-                step="0.01"
+                oninput="formatarMoedaInput(this)"
+                placeholder="R$ 0,00"
+                data-valor="0"
                 required
               />
             </div>

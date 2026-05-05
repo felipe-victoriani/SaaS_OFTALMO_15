@@ -3,8 +3,8 @@
 // ================================================================
 "use strict";
 
-const CACHE_NAME = "gestao-clinica-v5";
-const CACHE_STATIC = "gestao-clinica-static-v5";
+const CACHE_NAME = "oftalmo15-v6";
+const CACHE_STATIC = "oftalmo15-static-v6";
 
 // Assets para cache imediato (Cache First)
 const STATIC_ASSETS = [

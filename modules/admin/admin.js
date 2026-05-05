@@ -2,6 +2,18 @@
 // admin.js — Módulo Administração (somente Admin Master)
 // ================================================================
 
+// CORRIGIDO: instância secundária do Firebase para criar usuários sem deslogar o admin
+function _getSecondaryAuth() {
+  let app;
+  try {
+    app = firebase.app("secondary-auth");
+  } catch (_) {
+    // Usa firebaseConfig definido em firebase-config.js
+    app = firebase.initializeApp(firebaseConfig, "secondary-auth");
+  }
+  return app.auth();
+}
+
 window.Modules = window.Modules || {};
 
 window.Modules.admin = {
@@ -225,11 +237,14 @@ window.Modules.admin = {
           {
             label: "Cancelar",
             classe: "btn-secondary",
+            id: "adm-modal-cancelar",
             onClick: () => Modal.fecharModal(),
           },
           {
             label: "Salvar",
             classe: "btn-primary",
+            id: "adm-modal-salvar",
+            icone: "save",
             onClick: () => this._salvarUsuario(uid, MODULOS_PERM),
           },
         ],
@@ -266,17 +281,48 @@ window.Modules.admin = {
           Alerts.aviso("Senha deve ter no mínimo 6 caracteres.");
           return;
         }
-        const cred = await firebase
-          .auth()
-          .createUserWithEmailAndPassword(email, senha);
+        // CORRIGIDO: usa instância secundária para não deslogar o admin logado
+        const secondaryAuth = _getSecondaryAuth();
+        let cred;
+        try {
+          cred = await secondaryAuth.createUserWithEmailAndPassword(
+            email,
+            senha,
+          );
+        } catch (firebaseErr) {
+          // Traduz erros comuns do Firebase para mensagens amigáveis
+          console.error(
+            "[admin] createUser erro:",
+            firebaseErr.code,
+            firebaseErr.message,
+          );
+          const mapaErros = {
+            "auth/email-already-in-use": "Este e-mail já está cadastrado.",
+            "auth/invalid-email": "E-mail inválido.",
+            "auth/weak-password": "Senha fraca — mínimo 6 caracteres.",
+            "auth/too-many-requests":
+              "Muitas tentativas. Aguarde e tente novamente.",
+            "auth/operation-not-allowed":
+              "Autenticação por e-mail/senha não está habilitada no Firebase Console. Ative em Authentication → Sign-in method.",
+            "auth/admin-restricted-operation":
+              "Criação de usuários não permitida. Verifique as configurações de Authentication no Firebase Console.",
+          };
+          Alerts.erro(
+            mapaErros[firebaseErr.code] ||
+              "Erro ao criar usuário: " + firebaseErr.message,
+          );
+          return;
+        }
         const novoUid = cred.user.uid;
+        // Desloga da instância secundária sem afetar o admin principal
+        await secondaryAuth.signOut();
         await atualizar(`${CAMINHOS.usuarios()}/${novoUid}`, {
           nome,
           email,
           isAdmin: admin,
           permissoes,
         });
-        Alerts.sucesso("Usuário criado!");
+        Alerts.sucesso("Usuário criado com sucesso!");
       }
       Modal.fecharModal();
       this._renderAba("usuarios");
@@ -332,7 +378,7 @@ window.Modules.admin = {
             </div>
             <div class="form-group">
               <label class="form-label required" for="meta-valor">Meta Mensal (R$)</label>
-              <input type="number" id="meta-valor" class="form-input" min="0" step="100" required>
+              <input type="text" inputmode="numeric" id="meta-valor" class="form-input" oninput="formatarMoedaInput(this)" placeholder="R$ 0,00" data-valor="0" required>
             </div>
           </div>
           <div class="form-actions">
@@ -379,8 +425,8 @@ window.Modules.admin = {
       ?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const nome = document.getElementById("meta-nome").value.trim();
-        const valor =
-          parseFloat(document.getElementById("meta-valor").value) || 0;
+        // CORRIGIDO: usa getValorNumerico para ler campo formatado como moeda
+        const valor = getValorNumerico(document.getElementById("meta-valor"));
         if (!nome || valor <= 0) {
           Alerts.aviso("Preencha nome e valor.");
           return;

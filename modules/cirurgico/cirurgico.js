@@ -116,10 +116,12 @@ window.Modules.cirurgico = {
     const modeloLio =
       document.getElementById("cir-modelo-lio")?.value.trim() || "";
     const valorLio = lio
-      ? parseFloat(document.getElementById("cir-valor-lio")?.value || 0)
+      ? // CORRIGIDO: usa getValorNumerico para ler campo formatado como moeda
+        getValorNumerico(document.getElementById("cir-valor-lio"))
       : 0;
-    const valorTotal = parseFloat(
-      document.getElementById("cir-valor-total")?.value || 0,
+    // CORRIGIDO: usa getValorNumerico para ler campo formatado como moeda
+    const valorTotal = getValorNumerico(
+      document.getElementById("cir-valor-total"),
     );
     const editId = document.getElementById("cir-edit-id")?.value;
 
@@ -162,6 +164,8 @@ window.Modules.cirurgico = {
           editId,
           this._registros[editId],
         );
+        // CORRIGIDO: atualiza rascunho de honorários vinculado se ainda não lançado
+        await this._atualizarRascunhoHonorarios(editId, dados);
         Alerts.sucesso("Cirurgia atualizada!");
         document.getElementById("cir-edit-id").value = "";
         if (txt) txt.textContent = "Registrar Cirurgia";
@@ -170,6 +174,7 @@ window.Modules.cirurgico = {
         await registrarAuditoria("criar", "cirurgico", id, null);
         await this._criarRascunhoHonorarios(id, { ...dados, _id: id });
         Alerts.sucesso("Cirurgia registrada! Rascunho criado em Honorários.");
+        if (txt) txt.textContent = "Registrar Cirurgia";
       }
       document.getElementById("form-cirurgico")?.reset();
       document.getElementById("grupo-lio").style.display = "none";
@@ -178,6 +183,10 @@ window.Modules.cirurgico = {
       Alerts.erro("Erro ao salvar cirurgia.");
     } finally {
       if (btn) btn.disabled = false;
+      // Garante que o texto volta ao padrão mesmo em caso de erro
+      if (txt && !document.getElementById("cir-edit-id")?.value) {
+        txt.textContent = "Registrar Cirurgia";
+      }
     }
   },
 
@@ -192,12 +201,13 @@ window.Modules.cirurgico = {
       tipo_cirurgia: cir.tipo_cirurgia,
       olho_operado: cir.olho_operado,
       valor_lio_total: cir.valor_lio || 0,
+      // CORRIGIDO: salva o valor total da cirurgia para exibir em honorários
+      valor_total_cirurgia: cir.valor_total || 0,
       lio_parte_cirurgiao: cir.valor_lio || 0,
       lio_parte_clinica: 0,
       honorario_cirurgiao_pf: 0,
       honorario_auxiliar_pf: 0,
       honorario_instrumentador_pf: 0,
-      valor_clinica_cnpj: 0,
       valor_total: 0,
       lancado: false,
       registrado_por: window.AppState.uid,
@@ -227,9 +237,14 @@ window.Modules.cirurgico = {
     if (r.lio_implantada) {
       document.getElementById("cir-tipo-lio").value = r.tipo_lio || "";
       document.getElementById("cir-modelo-lio").value = r.modelo_lio || "";
-      document.getElementById("cir-valor-lio").value = r.valor_lio || 0;
+      // CORRIGIDO: usa setValorMoeda para preencher campo formatado
+      setValorMoeda(document.getElementById("cir-valor-lio"), r.valor_lio || 0);
     }
-    document.getElementById("cir-valor-total").value = r.valor_total || 0;
+    // CORRIGIDO: usa setValorMoeda para preencher campo formatado
+    setValorMoeda(
+      document.getElementById("cir-valor-total"),
+      r.valor_total || 0,
+    );
     document.getElementById("cir-edit-id").value = id;
     document.getElementById("btn-cir-txt").textContent = "Atualizar Cirurgia";
     document.getElementById("cir-paciente")?.focus();
@@ -237,24 +252,78 @@ window.Modules.cirurgico = {
 
   _excluirRegistro(id, nome) {
     Modal.confirmar(
-      `Excluir cirurgia de <strong>${nome}</strong>?`,
+      `Excluir cirurgia de <strong>${nome}</strong>?<br><br>⚠️ O registro de honorários vinculado também será excluído.`,
       async () => {
         try {
-          await remover(
-            `${caminhoData("cirurgias", this._dataSelecionada)}/${id}`,
+          const ant = this._registros[id];
+          // CORRIGIDO: exclui honorários vinculados em paralelo com a cirurgia
+          const honSnap = await lerUmaVez(
+            caminhoData("honorarios", this._dataSelecionada),
           );
-          await registrarAuditoria(
-            "excluir",
-            "cirurgico",
-            id,
-            this._registros[id],
-          );
-          Alerts.sucesso("Cirurgia excluída.");
+          const exclusoes = [
+            remover(`${caminhoData("cirurgias", this._dataSelecionada)}/${id}`),
+          ];
+          if (honSnap) {
+            const honEntry = Object.entries(honSnap).find(
+              ([, h]) => h.cirurgia_id === id,
+            );
+            if (honEntry) {
+              exclusoes.push(
+                remover(
+                  `${caminhoData("honorarios", this._dataSelecionada)}/${honEntry[0]}`,
+                ),
+              );
+            }
+          }
+          await Promise.all(exclusoes);
+          await registrarAuditoria("excluir", "cirurgico", id, ant);
+          Alerts.sucesso("Cirurgia e honorários excluídos com sucesso.");
         } catch {
           Alerts.erro("Erro ao excluir.");
         }
       },
       "Excluir Cirurgia",
     );
+  },
+
+  /**
+   * CORRIGIDO: atualiza o rascunho de honorários vinculado à cirurgia editada,
+   * mas apenas se o honorário ainda não foi lançado.
+   */
+  async _atualizarRascunhoHonorarios(cirurgiaId, cir) {
+    try {
+      const honSnap = await lerUmaVez(
+        caminhoData("honorarios", this._dataSelecionada),
+      );
+      if (!honSnap) return;
+      const honEntry = Object.entries(honSnap).find(
+        ([, h]) => h.cirurgia_id === cirurgiaId,
+      );
+      if (!honEntry) return;
+      const [honId, honData] = honEntry;
+      // Só atualiza dados operacionais se ainda não foi lançado
+      if (honData.lancado) return;
+      await atualizar(
+        `${caminhoData("honorarios", this._dataSelecionada)}/${honId}`,
+        {
+          paciente: cir.paciente,
+          nome_cirurgiao: cir.medico_cirurgiao,
+          nome_auxiliar: cir.medico_auxiliar || "",
+          nome_instrumentador: cir.instrumentador || "",
+          tipo_cirurgia: cir.tipo_cirurgia,
+          olho_operado: cir.olho_operado,
+          valor_lio_total: cir.valor_lio || 0,
+          // CORRIGIDO: mantém valor_total_cirurgia sincronizado ao editar cirurgia
+          valor_total_cirurgia: cir.valor_total || 0,
+          lio_parte_cirurgiao: cir.valor_lio || 0,
+          lio_parte_clinica: 0,
+        },
+      );
+    } catch (err) {
+      console.warn(
+        "[cirurgico] Falha ao atualizar rascunho de honorários:",
+        err,
+      );
+    }
   },
 };
