@@ -110,10 +110,13 @@ async function processarRota() {
     // Injetar CSS do módulo caso exista (sem duplicar)
     const cssHref = `modules/${rota}/${rota}.css`;
     if (!document.querySelector(`link[href="${cssHref}"]`)) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = cssHref;
-      document.head.appendChild(link);
+      const cssRes = await fetch(cssHref, { method: "HEAD" });
+      if (cssRes.ok) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = cssHref;
+        document.head.appendChild(link);
+      }
     }
 
     if (window.Modules[rota]?.mount) {
