@@ -2,6 +2,18 @@
 // admin.js — Módulo Administração (somente Admin Master)
 // ================================================================
 
+// Instância secundária do Firebase para criar usuários sem deslogar o admin
+function _getSecondaryAuth() {
+  const config = firebase.app().options;
+  let app;
+  try {
+    app = firebase.app("secondary-auth");
+  } catch (_) {
+    app = firebase.initializeApp(config, "secondary-auth");
+  }
+  return app.auth();
+}
+
 window.Modules = window.Modules || {};
 
 window.Modules.admin = {
@@ -293,10 +305,12 @@ window.Modules.admin = {
           Alerts.aviso("Senha deve ter no mínimo 6 caracteres.");
           return;
         }
-        const cred = await firebase
-          .auth()
-          .createUserWithEmailAndPassword(email, senha);
+        const cred = await _getSecondaryAuth().createUserWithEmailAndPassword(
+          email,
+          senha,
+        );
         const novoUid = cred.user.uid;
+        await _getSecondaryAuth().signOut(); // deslogar da instância secundária
         await atualizar(`${CAMINHOS.usuarios()}/${novoUid}`, {
           nome,
           email,
