@@ -1,0 +1,23 @@
+/* ================================================================
+ * css/faturamento.css — Estilos específicos do módulo Faturamento
+ * ALTERAÇÃO 5: grid de 3 gráficos e card de gráfico
+ * ================================================================ */
+
+/* Grid de 3 gráficos lado a lado */
+.graficos-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Ocupa toda a largura (para gráfico de linha) */
+.chart-wide {
+  grid-column: 1 / -1;
+}
+
+/* Adaptação mobile */
+@media (max-width: 768px) {
+  .graficos-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,21 @@
+/* ================================================================
+ * css/relatorios.css — Estilos para módulos de relatórios
+ * ALTERAÇÃO 6: layout do relatório de recepção
+ * ================================================================ */
+
+/* Grid de 4 cards usados no relatório de recepção */
+.cards-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 900px) {
+  .cards-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .cards-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}

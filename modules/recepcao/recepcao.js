@@ -6,7 +6,9 @@ window.Modules = window.Modules || {};
 
 window.Modules.recepcao = {
   _cancelarEscuta: null,
-  _registros: {},
+  _registrosBrutos: {}, // ALTERAÇÃO 1: todos os registros sem filtro de médico
+  _medicoSelecionado: "todos", // ALTERAÇÃO 1: filtro de médico ativo
+  _usuariosMap: {}, // ALTERAÇÃO 1: cache do mapa de nomes de usuário
   _dataSelecionada: hoje(),
 
   mount(container) {
@@ -17,6 +19,9 @@ window.Modules.recepcao = {
       container.querySelectorAll(".admin-only").forEach((el) => {
         el.hidden = false;
       });
+      // ALTERAÇÃO 1: exibir dropdown de médico somente para admin
+      const filtroMedico = container.querySelector("#filtro-medico-recepcao");
+      if (filtroMedico) filtroMedico.style.display = "flex";
     }
 
     // Definir data atual no seletor
@@ -83,6 +88,23 @@ window.Modules.recepcao = {
     set("meta-ind", `${nInd} paciente${nInd !== 1 ? "s" : ""}`);
     set("meta-lead", `${nLead} paciente${nLead !== 1 ? "s" : ""}`);
     set("meta-geral", `${nGeral} paciente${nGeral !== 1 ? "s" : ""}`);
+  },
+
+  // ALTERAÇÃO 1: aplica filtro de médico sobre os registros brutos e re-renderiza
+  _aplicarFiltros() {
+    let registros = { ...this._registrosBrutos };
+
+    // Filtrar por médico somente para admin (não-admin já vê apenas os próprios)
+    if (isAdmin() && this._medicoSelecionado !== "todos") {
+      const filtrado = {};
+      Object.entries(registros).forEach(([id, r]) => {
+        if (r.medico === this._medicoSelecionado) filtrado[id] = r;
+      });
+      registros = filtrado;
+    }
+
+    this._atualizarCards(registros);
+    this._renderTabela(registros, this._usuariosMap);
   },
 
   _badgeOrigem(origem) {
@@ -153,20 +175,22 @@ window.Modules.recepcao = {
 
     const caminho = caminhoData("pacientes", this._dataSelecionada);
     this._cancelarEscuta = escutar(caminho, async (dados) => {
-      const filtrado = filtrarPorUsuario(dados || {});
-      this._registros = filtrado;
-      this._atualizarCards(filtrado);
+      // ALTERAÇÃO 1: armazena registros brutos (sem filtro de médico)
+      this._registrosBrutos = filtrarPorUsuario(dados || {});
 
-      let usuariosMap = {};
+      // Carregar mapa de usuários apenas para admin
       if (isAdmin()) {
         const usersSnap = await lerUmaVez("usuarios");
+        this._usuariosMap = {};
         if (usersSnap) {
           Object.entries(usersSnap).forEach(([uid, u]) => {
-            usuariosMap[uid] = u.nome || uid;
+            this._usuariosMap[uid] = u.nome || uid;
           });
         }
       }
-      this._renderTabela(filtrado, usuariosMap);
+
+      // ALTERAÇÃO 1: aplica filtros (data + médico) antes de renderizar
+      this._aplicarFiltros();
     });
     registrarListener(this._cancelarEscuta);
   },
@@ -177,6 +201,14 @@ window.Modules.recepcao = {
       ?.addEventListener("change", (e) => {
         this._dataSelecionada = e.target.value;
         this._iniciarEscuta();
+      });
+
+    // ALTERAÇÃO 1: filtro de médico — reaplica filtros sem re-escutar Firebase
+    container
+      .querySelector("#select-medico-recepcao")
+      ?.addEventListener("change", (e) => {
+        this._medicoSelecionado = e.target.value;
+        this._aplicarFiltros();
       });
 
     container.querySelector("#rec-origem")?.addEventListener("change", (e) => {
@@ -224,7 +256,8 @@ window.Modules.recepcao = {
       const caminho = caminhoData("pacientes", this._dataSelecionada);
 
       if (editId) {
-        const anterior = this._registros[editId];
+        // ALTERAÇÃO 1: usa _registrosBrutos para obter estado anterior
+        const anterior = this._registrosBrutos[editId];
         await atualizar(`${caminho}/${editId}`, dados);
         await registrarAuditoria("editar", "recepcao", editId, anterior);
         Alerts.sucesso("Atendimento atualizado!");
@@ -252,7 +285,8 @@ window.Modules.recepcao = {
   },
 
   _editarRegistro(id) {
-    const r = this._registros[id];
+    // ALTERAÇÃO 1: usa _registrosBrutos para acessar qualquer registro (independente do filtro)
+    const r = this._registrosBrutos[id];
     if (!r) return;
     document.getElementById("rec-paciente").value = r.nome || "";
     document.getElementById("rec-medico").value = r.medico || "";
@@ -279,7 +313,8 @@ window.Modules.recepcao = {
       `Deseja excluir o atendimento de <strong>${nome}</strong>? Esta ação não pode ser desfeita.`,
       async () => {
         try {
-          const anterior = this._registros[id];
+          // ALTERAÇÃO 1: usa _registrosBrutos para obter estado anterior na exclusão
+          const anterior = this._registrosBrutos[id];
           const caminho = caminhoData("pacientes", this._dataSelecionada);
           await remover(`${caminho}/${id}`);
           await registrarAuditoria("excluir", "recepcao", id, anterior);

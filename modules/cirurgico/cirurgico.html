@@ -84,27 +84,43 @@
               <label class="form-label" for="cir-tipo"
                 >Tipo de Cirurgia <span class="required">*</span></label
               >
+              <!-- ALTERAÇÃO 3: lista atualizada com "Aplicação" e "Outra (descrever abaixo)" -->
               <select id="cir-tipo" class="form-select" required>
                 <option value="">Selecione...</option>
-                <option>Facoemulsificação</option>
-                <option>Facoemulsificação com LIO Premium</option>
-                <option>Vitrectomia Posterior</option>
-                <option>Vitrectomia Anterior</option>
-                <option>Trabeculectomia</option>
-                <option>Implante de Válvula de Ahmed</option>
-                <option>Pterigio</option>
+                <option>Catarata (Facoemulsificação)</option>
+                <option>Catarata (Extracapsular)</option>
+                <option>LASIK</option>
+                <option>PRK</option>
+                <option>LASEK</option>
+                <option>Pterígio</option>
                 <option>Blefaroplastia</option>
-                <option>Retina Descolada</option>
-                <option>Membrana Epirretiniana</option>
-                <option>Oclusão de Veia Retiniana</option>
-                <option>Retinopatia Diabética (Laser)</option>
-                <option>Cirurgia Refrativa (LASIK)</option>
-                <option>Cirurgia Refrativa (PRK)</option>
-                <option>Crosslinking Corneano</option>
-                <option>Ceratoplastia (Transplante de Córnea)</option>
-                <option>Estrabismo</option>
                 <option>Dacriocistorrinostomia (DCR)</option>
+                <option>Trabeculectomia (Glaucoma)</option>
+                <option>Implante de Válvula (Glaucoma)</option>
+                <option>Vitrectomia</option>
+                <option>Retinopexia</option>
+                <option>Fotocoagulação a Laser</option>
+                <option>Estrabismo</option>
+                <option>Calázio / Cisto de Meibômio</option>
+                <option>Transplante de Córnea (Ceratoplastia)</option>
+                <option>Crosslinking de Córnea</option>
+                <option>Injeção Intravítrea (Anti-VEGF)</option>
+                <option>Aplicação</option>
+                <option>Outra (descrever abaixo)</option>
               </select>
+              <!-- ALTERAÇÃO 3: campo de texto livre exibido quando "Outra" é selecionado -->
+              <div
+                id="campo-outra-cirurgia"
+                style="display: none; margin-top: 8px"
+              >
+                <input
+                  type="text"
+                  id="input-outra-cirurgia"
+                  class="form-input"
+                  placeholder="Descreva o tipo de cirurgia..."
+                  maxlength="100"
+                />
+              </div>
             </div>
             <div class="form-group full-width">
               <label class="form-label" for="cir-olho"

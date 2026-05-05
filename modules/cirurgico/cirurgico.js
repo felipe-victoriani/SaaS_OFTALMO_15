@@ -95,6 +95,26 @@ window.Modules.cirurgico = {
       const grupo = document.getElementById("grupo-lio");
       if (grupo) grupo.style.display = e.target.checked ? "" : "none";
     });
+    // ALTERAÇÃO 3: exibir campo livre ao selecionar "Outra (descrever abaixo)"
+    container
+      .querySelector("#cir-tipo")
+      ?.addEventListener("change", function () {
+        const campoOutra = document.getElementById("campo-outra-cirurgia");
+        const inputOutra = document.getElementById("input-outra-cirurgia");
+        if (this.value === "Outra (descrever abaixo)") {
+          if (campoOutra) campoOutra.style.display = "block";
+          if (inputOutra) {
+            inputOutra.required = true;
+            inputOutra.focus();
+          }
+        } else {
+          if (campoOutra) campoOutra.style.display = "none";
+          if (inputOutra) {
+            inputOutra.required = false;
+            inputOutra.value = "";
+          }
+        }
+      });
     container
       .querySelector("#form-cirurgico")
       ?.addEventListener("submit", async (e) => {
@@ -103,13 +123,25 @@ window.Modules.cirurgico = {
       });
   },
 
+  // ALTERAÇÃO 3: retorna o tipo de cirurgia correto (campo livre se "Outra" selecionado)
+  _getTipoCirurgia() {
+    const select = document.getElementById("cir-tipo");
+    if (select?.value === "Outra (descrever abaixo)") {
+      return (
+        document.getElementById("input-outra-cirurgia")?.value.trim() || "Outra"
+      );
+    }
+    return select?.value || "";
+  },
+
   async _salvarRegistro() {
     const paciente = document.getElementById("cir-paciente")?.value.trim();
     const cirurgiao = document.getElementById("cir-cirurgiao")?.value;
     const auxiliar = document.getElementById("cir-auxiliar")?.value || "";
     const instrumentador =
       document.getElementById("cir-instrumentador")?.value.trim() || "";
-    const tipo = document.getElementById("cir-tipo")?.value;
+    // ALTERAÇÃO 3: usa helper para obter tipo (inclui campo livre "Outra")
+    const tipo = this._getTipoCirurgia();
     const olho = document.getElementById("cir-olho")?.value;
     const lio = document.getElementById("cir-lio")?.checked;
     const tipoLio = document.getElementById("cir-tipo-lio")?.value || "";
@@ -245,6 +277,14 @@ window.Modules.cirurgico = {
       document.getElementById("cir-valor-total"),
       r.valor_total || 0,
     );
+    // ALTERAÇÃO 3: ocultar campo "Outra" ao editar (tipo já vem preenchido no select)
+    const campoOutra = document.getElementById("campo-outra-cirurgia");
+    const inputOutra = document.getElementById("input-outra-cirurgia");
+    if (campoOutra) campoOutra.style.display = "none";
+    if (inputOutra) {
+      inputOutra.required = false;
+      inputOutra.value = "";
+    }
     document.getElementById("cir-edit-id").value = id;
     document.getElementById("btn-cir-txt").textContent = "Atualizar Cirurgia";
     document.getElementById("cir-paciente")?.focus();

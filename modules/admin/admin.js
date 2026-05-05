@@ -404,7 +404,7 @@ window.Modules.admin = {
                     <td>${m.nome}</td>
                     <td class="table-number">${formatarMoeda(m.valor || 0)}</td>
                     <td>
-                      <button class="btn btn-ghost btn-icon btn-sm btn-danger" onclick="Modules.admin._removerMeta('${m._id}')" aria-label="Remover meta">
+                      <button class="btn btn-ghost btn-icon btn-sm btn-danger" onclick="Modules.admin._removerMeta('${m._id}', '${(m.nome || "").replace(/'/g, "\\'")}')" aria-label="Remover meta">
                         <i data-lucide="trash-2" width="14" height="14" aria-hidden="true"></i>
                       </button>
                     </td>
@@ -441,18 +441,89 @@ window.Modules.admin = {
       });
   },
 
-  async _removerMeta(id) {
-    Modal.confirmar("Remover esta meta?", async () => {
-      await remover(`${CAMINHOS.metas()}/${id}`);
-      Alerts.sucesso("Meta removida.");
-      this._renderAba("metas");
-    });
+  // ALTERAÇÃO 2: somente exclusão — confirmação com nome do médico e instrução de recriação
+  async _removerMeta(id, nomeMedico) {
+    Modal.confirmar(
+      `Excluir a meta de <strong>${nomeMedico || "este médico"}</strong>?<br><br>` +
+        `Para definir um novo valor, crie uma nova meta após a exclusão.`,
+      async () => {
+        await remover(`${CAMINHOS.metas()}/${id}`);
+        await registrarAuditoria("excluir", "metas", id, { nome: nomeMedico });
+        Alerts.sucesso("Meta removida.");
+        this._renderAba("metas");
+      },
+      "Excluir Meta",
+    );
   },
 
   // ---- ABA: RELATÓRIOS ----
   async _renderRelatorios(container) {
     const mesAtual = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+    // Calcular primeiro e último dia do mês atual para pré-preencher relatório de recepção
+    const hoje = new Date();
+    const primeiroDoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+    const ultimoDia = new Date(
+      hoje.getFullYear(),
+      hoje.getMonth() + 1,
+      0,
+    ).getDate();
+    const ultimoDoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
+
     container.innerHTML = `
+      <!-- ALTERAÇÃO 6: Relatório de Recepção com filtros De/Até, Médico e Origem -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <span class="card-title">
+            <i data-lucide="clipboard-list" width="18" height="18" aria-hidden="true"></i>
+            Relatório de Recepção
+          </span>
+        </div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="min-width:130px;margin:0">
+            <label class="form-label">De:</label>
+            <input type="date" id="rec-rel-de" class="filter-input" value="${primeiroDoMes}">
+          </div>
+          <div class="form-group" style="min-width:130px;margin:0">
+            <label class="form-label">Até:</label>
+            <input type="date" id="rec-rel-ate" class="filter-input" value="${ultimoDoMes}">
+          </div>
+          <div class="form-group" style="min-width:160px;margin:0">
+            <label class="form-label">Médico:</label>
+            <select id="rec-rel-medico" class="filter-input">
+              <option value="todos">Todos os Médicos</option>
+              <option>Dra. Mariza</option>
+              <option>Dra. Fabiana</option>
+              <option>Dra. Mariana</option>
+              <option>Dr. Dante</option>
+              <option>Dr. Alberto</option>
+            </select>
+          </div>
+          <div class="form-group" style="min-width:130px;margin:0">
+            <label class="form-label">Origem:</label>
+            <select id="rec-rel-origem" class="filter-input">
+              <option value="todas">Todas</option>
+              <option>Base</option>
+              <option>Indicação</option>
+              <option>Lead</option>
+              <option>Convênio</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-gerar-rel-recepcao">
+            <i data-lucide="search" width="14" height="14" aria-hidden="true"></i> Gerar Relatório
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-export-rec-pdf" style="display:none">
+            <i data-lucide="file-down" width="14" height="14" aria-hidden="true"></i> PDF
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-export-rec-excel" style="display:none">
+            <i data-lucide="table" width="14" height="14" aria-hidden="true"></i> Excel
+          </button>
+        </div>
+      </div>
+      <div id="rel-recepcao-resultado" class="mb-3"></div>
+
+      <!-- Separador entre relatórios -->
+      <hr style="border:none;border-top:2px solid var(--border);margin:1.5rem 0">
+
       <div class="card mb-3">
         <div class="card-header">
           <span class="card-title">
@@ -479,6 +550,38 @@ window.Modules.admin = {
       <div id="rel-resultado"></div>
     `;
     lucide.createIcons({ nodes: [container] });
+
+    // ALTERAÇÃO 6: listeners do relatório de recepção
+    container
+      .querySelector("#btn-gerar-rel-recepcao")
+      ?.addEventListener("click", async () => {
+        const de = document.getElementById("rec-rel-de")?.value;
+        const ate = document.getElementById("rec-rel-ate")?.value;
+        const medico =
+          document.getElementById("rec-rel-medico")?.value || "todos";
+        const origem =
+          document.getElementById("rec-rel-origem")?.value || "todas";
+        if (!de || !ate) {
+          Alerts.aviso("Informe o período (De e Até).");
+          return;
+        }
+        const resultEl = document.getElementById("rel-recepcao-resultado");
+        await RelatorioRecepcao.gerar(de, ate, medico, origem, resultEl);
+        document.getElementById("btn-export-rec-pdf").style.display = "";
+        document.getElementById("btn-export-rec-excel").style.display = "";
+      });
+
+    container
+      .querySelector("#btn-export-rec-pdf")
+      ?.addEventListener("click", () => {
+        RelatorioRecepcao.exportarPDF();
+      });
+
+    container
+      .querySelector("#btn-export-rec-excel")
+      ?.addEventListener("click", () => {
+        RelatorioRecepcao.exportarExcel();
+      });
 
     container
       .querySelector("#btn-gerar-relatorio")

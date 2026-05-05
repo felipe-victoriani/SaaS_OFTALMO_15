@@ -31,10 +31,12 @@ window.Modules.faturamento = {
     const isAdm = AppState.isAdmin;
     const uid = AppState.uid;
 
-    // Carregar honorários e metas em paralelo
-    const [honorariosArr, metasSnap] = await Promise.all([
+    // Carregar honorários, metas e recepcao em paralelo
+    // ALTERAÇÃO 4: busca dados da recepção para incluir nos cards dos médicos
+    const [honorariosArr, metasSnap, recepcaoArr] = await Promise.all([
       buscarIntervalo("honorarios", inicio, fim),
       lerUmaVez(CAMINHOS.metas()),
+      buscarIntervalo("pacientes", inicio, fim),
     ]);
 
     const lancados = honorariosArr.filter((r) => r.lancado);
@@ -51,6 +53,7 @@ window.Modules.faturamento = {
           lio_cir: 0,
           auxiliar: 0,
           instrumentador: 0,
+          recepcao: 0, // ALTERAÇÃO 4: receita da recepção por médico
         };
     };
 
@@ -90,10 +93,21 @@ window.Modules.faturamento = {
             lio_cir: 0,
             auxiliar: 0,
             instrumentador: 0,
+            recepcao: 0, // ALTERAÇÃO 4
           };
         }
       });
     }
+
+    // ALTERAÇÃO 4: acumular receita da recepção por médico
+    recepcaoArr.forEach((r) => {
+      const medico = r.medico;
+      if (!medico) return;
+      _garantir(medico);
+      if (porMedico[medico]) {
+        porMedico[medico].recepcao += parseFloat(r.valor) || 0;
+      }
+    });
 
     // ── Card Clínica CNPJ — em destaque, antes dos médicos, somente admin ──
     const cliEl = document.getElementById("fat-card-clinica");
@@ -153,12 +167,26 @@ window.Modules.faturamento = {
       cardsEl.innerHTML = nomes
         .map((nome) => {
           const d = porMedico[nome];
-          const total = d.cirurgiao + d.lio_cir + d.auxiliar + d.instrumentador;
+          // ALTERAÇÃO 4: total inclui receita da recepção
+          const total =
+            d.cirurgiao +
+            d.lio_cir +
+            d.auxiliar +
+            d.instrumentador +
+            d.recepcao;
           const lioLine =
             d.lio_cir > 0
               ? `<div style="display:flex;justify-content:space-between">
                 <span>LIO (parte ${nome.startsWith("Dra.") ? "dela" : "dele"})</span>
-                <strong style="color:var(--text-primary)">${formatarMoeda(d.lio_cir)}</strong>
+                <strong style="color:#7c3aed">${formatarMoeda(d.lio_cir)}</strong>
+               </div>`
+              : "";
+          // ALTERAÇÃO 4: linha de receita da recepção (cor verde claro)
+          const recLine =
+            d.recepcao > 0
+              ? `<div style="display:flex;justify-content:space-between">
+                <span>Receita Recepção</span>
+                <strong style="color:#16a34a">${formatarMoeda(d.recepcao)}</strong>
                </div>`
               : "";
           return `
@@ -170,19 +198,20 @@ window.Modules.faturamento = {
               </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:.35rem;font-size:0.85rem;color:var(--text-secondary);margin-bottom:.75rem">
+              ${recLine}
               <div style="display:flex;justify-content:space-between">
-                <span>Como Cirurgiã${nome.startsWith("Dra.") ? "" : "o"}</span>
-                <strong style="color:var(--text-primary)">${formatarMoeda(d.cirurgiao)}</strong>
+                <span>Receita Cirurgia</span>
+                <strong style="color:#2563eb">${formatarMoeda(d.cirurgiao)}</strong>
               </div>
               ${lioLine}
               <div style="display:flex;justify-content:space-between">
                 <span>Como Auxiliar</span>
-                <strong style="color:var(--text-primary)">${formatarMoeda(d.auxiliar)}</strong>
+                <strong style="color:#8b5cf6">${formatarMoeda(d.auxiliar)}</strong>
               </div>
               <div style="border-top:1px solid var(--border);margin:.2rem 0"></div>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:.9rem;font-weight:700">
-              <span>Total Recebido</span>
+              <span>Total</span>
               <span class="table-number" style="color:var(--accent)">${formatarMoeda(total)}</span>
             </div>
           </div>`;
@@ -213,6 +242,12 @@ window.Modules.faturamento = {
               data: nomes.map((n) => porMedico[n].auxiliar),
               backgroundColor: "#059669",
             },
+            // ALTERAÇÃO 4: dataset de receita da recepção no gráfico de barras
+            {
+              label: "Recepção",
+              data: nomes.map((n) => porMedico[n].recepcao),
+              backgroundColor: "#10b981",
+            },
           ],
         },
         options: {
@@ -229,6 +264,8 @@ window.Modules.faturamento = {
     }
 
     this._renderMetas(porMedico);
+    // ALTERAÇÃO 5: renderizar gráficos de receita da recepção
+    this._renderizarGraficosRecepcao(recepcaoArr);
   },
 
   async _renderMetas(porMedico) {
@@ -251,8 +288,12 @@ window.Modules.faturamento = {
     el.innerHTML = metas
       .map((m) => {
         const total = porMedico[m.nome] || {};
+        // ALTERAÇÃO 4: inclui receita da recepção no cálculo de progresso de meta
         const atual =
-          (total.cirurgiao || 0) + (total.lio_cir || 0) + (total.auxiliar || 0);
+          (total.cirurgiao || 0) +
+          (total.lio_cir || 0) +
+          (total.auxiliar || 0) +
+          (total.recepcao || 0);
         const meta = m.valor || 0;
         const pct =
           meta > 0 ? Math.min(100, Math.round((atual / meta) * 100)) : 0;
@@ -272,6 +313,142 @@ window.Modules.faturamento = {
       `;
       })
       .join("");
+  },
+
+  // ALTERAÇÃO 5: renderiza os 3 gráficos de receita da recepção
+  _renderizarGraficosRecepcao(recepcaoArr) {
+    if (!recepcaoArr || recepcaoArr.length === 0) {
+      const secao = document.getElementById("secao-graficos-recepcao");
+      if (secao) secao.style.display = "none";
+      return;
+    }
+    const secao = document.getElementById("secao-graficos-recepcao");
+    if (secao) secao.style.display = "";
+
+    // Agrupar por médico
+    const porMedicoRec = {};
+    recepcaoArr.forEach((r) => {
+      const m = r.medico || "Não informado";
+      porMedicoRec[m] = (porMedicoRec[m] || 0) + (parseFloat(r.valor) || 0);
+    });
+
+    // Agrupar por origem
+    const origens = { Base: 0, Convênio: 0, Indicação: 0, Lead: 0 };
+    recepcaoArr.forEach((r) => {
+      const o = r.origem || "Base";
+      if (origens[o] !== undefined) origens[o] += parseFloat(r.valor) || 0;
+      else origens["Base"] += parseFloat(r.valor) || 0;
+    });
+
+    // Agrupar por data (evolução diária)
+    const porData = {};
+    recepcaoArr.forEach((r) => {
+      const d = r._data || hoje();
+      porData[d] = (porData[d] || 0) + (parseFloat(r.valor) || 0);
+    });
+    const datasOrdenadas = Object.keys(porData).sort();
+
+    // Gráfico 1 — por médico (barras)
+    const ctxMedico = document.getElementById("chart-recepcao-medico");
+    if (ctxMedico) {
+      const nomes = Object.keys(porMedicoRec);
+      const c1 = new Chart(ctxMedico, {
+        type: "bar",
+        data: {
+          labels: nomes,
+          datasets: [
+            {
+              label: "Receita Recepção (R$)",
+              data: nomes.map((n) => porMedicoRec[n]),
+              backgroundColor: [
+                "#2563eb",
+                "#10b981",
+                "#f59e0b",
+                "#8b5cf6",
+                "#ef4444",
+              ],
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { callback: (v) => "R$" + (v / 1000).toFixed(0) + "k" },
+            },
+          },
+        },
+      });
+      this._charts.push(c1);
+    }
+
+    // Gráfico 2 — por origem (doughnut)
+    const ctxOrigem = document.getElementById("chart-recepcao-origem");
+    if (ctxOrigem) {
+      const c2 = new Chart(ctxOrigem, {
+        type: "doughnut",
+        data: {
+          labels: ["Base", "Indicação", "Lead", "Convênio"],
+          datasets: [
+            {
+              data: [
+                origens["Base"],
+                origens["Indicação"],
+                origens["Lead"],
+                origens["Convênio"],
+              ],
+              backgroundColor: ["#dc2626", "#16a34a", "#2563eb", "#8b5cf6"],
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "bottom" },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` ${formatarMoeda(ctx.raw)}`,
+              },
+            },
+          },
+        },
+      });
+      this._charts.push(c2);
+    }
+
+    // Gráfico 3 — evolução diária (linha)
+    const ctxDiario = document.getElementById("chart-recepcao-diario");
+    if (ctxDiario) {
+      const c3 = new Chart(ctxDiario, {
+        type: "line",
+        data: {
+          labels: datasOrdenadas.map((d) => formatarData(d)),
+          datasets: [
+            {
+              label: "Receita do dia",
+              data: datasOrdenadas.map((d) => porData[d]),
+              borderColor: "#2563eb",
+              backgroundColor: "rgba(37,99,235,0.08)",
+              fill: true,
+              tension: 0.4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { callback: (v) => "R$" + (v / 1000).toFixed(0) + "k" },
+            },
+          },
+        },
+      });
+      this._charts.push(c3);
+    }
   },
 
   _destruirCharts() {

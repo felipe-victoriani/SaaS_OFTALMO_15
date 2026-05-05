@@ -13,7 +13,8 @@
     <p class="module-subtitle">Registro de atendimentos do dia</p>
   </div>
 
-  <!-- Seletor de data -->
+  <!-- Seletor de data + filtro de médico -->
+  <!-- ALTERAÇÃO 1: barra de filtros com data e seletor de médico (somente admin) -->
   <div class="date-filter-bar">
     <label class="form-label" for="data-recepcao">Data:</label>
     <input
@@ -22,6 +23,27 @@
       class="filter-input"
       style="width: auto"
     />
+    <!-- ALTERAÇÃO 1: filtro de médico — revelado via JS somente para admin -->
+    <div
+      id="filtro-medico-recepcao"
+      style="display: none; align-items: center; gap: 0.5rem"
+    >
+      <label class="form-label" for="select-medico-recepcao" style="margin: 0"
+        >Médico:</label
+      >
+      <select
+        id="select-medico-recepcao"
+        class="filter-input"
+        style="width: auto"
+      >
+        <option value="todos">Todos os Médicos</option>
+        <option>Dra. Mariza</option>
+        <option>Dra. Fabiana</option>
+        <option>Dra. Mariana</option>
+        <option>Dr. Dante</option>
+        <option>Dr. Alberto</option>
+      </select>
+    </div>
   </div>
 
   <!-- Cards de totais -->
