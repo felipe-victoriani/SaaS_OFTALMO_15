@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Setup — Criar Admin</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      .card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 2rem;
+        width: 420px;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin-bottom: 0.25rem;
+        color: #f8fafc;
+      }
+      p.sub {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin-bottom: 1.5rem;
+      }
+      label {
+        display: block;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin-bottom: 0.3rem;
+      }
+      input {
+        width: 100%;
+        padding: 0.6rem 0.8rem;
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        color: #f1f5f9;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+      }
+      input:focus {
+        outline: none;
+        border-color: #6366f1;
+      }
+      .permissoes {
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+      }
+      .permissoes label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.4rem;
+        color: #cbd5e1;
+        cursor: pointer;
+      }
+      .permissoes input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+      }
+      button {
+        width: 100%;
+        padding: 0.7rem;
+        background: #6366f1;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button:hover {
+        background: #4f46e5;
+      }
+      button:disabled {
+        background: #334155;
+        cursor: not-allowed;
+      }
+      #log {
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        line-height: 1.6;
+        color: #94a3b8;
+      }
+      #log .ok {
+        color: #4ade80;
+      }
+      #log .err {
+        color: #f87171;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>⚙️ Configurar Admin Existente</h1>
+      <p class="sub">
+        Usuário já criado no Auth? Faça login abaixo para gravar os dados no
+        banco. Delete este arquivo após usar.
+      </p>
+
+      <label>Nome completo</label>
+      <input id="nome" type="text" placeholder="Dr. Admin Master" />
+
+      <label>E-mail</label>
+      <input id="email" type="email" placeholder="admin@clinica.com" />
+
+      <label>Senha (mín. 6 caracteres)</label>
+      <input id="senha" type="password" placeholder="••••••••" />
+
+      <label style="margin-bottom: 0.5rem; color: #cbd5e1">Permissões</label>
+      <div class="permissoes">
+        <label
+          ><input type="checkbox" id="p_recepcao" checked /> Recepção</label
+        >
+        <label
+          ><input type="checkbox" id="p_call_center" checked /> Call
+          Center</label
+        >
+        <label
+          ><input type="checkbox" id="p_cirurgico" checked /> Cirúrgico</label
+        >
+        <label
+          ><input type="checkbox" id="p_honorarios" checked /> Honorários</label
+        >
+        <label
+          ><input type="checkbox" id="p_faturamento" checked />
+          Faturamento</label
+        >
+        <label
+          ><input type="checkbox" id="p_patrimonio" checked /> Patrimônio</label
+        >
+        <label><input type="checkbox" id="p_estoque" checked /> Estoque</label>
+        <label
+          ><input type="checkbox" id="p_fornecedores" checked />
+          Fornecedores</label
+        >
+      </div>
+
+      <button id="btn" onclick="criarAdmin()">
+        Entrar e Configurar como Admin
+      </button>
+      <div id="log"></div>
+    </div>
+
+    <!-- Firebase compat v9 (CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+      // ── Mesmas credenciais do firebase-config.js ──────────────────────
+      const firebaseConfig = {
+        apiKey: "AIzaSyDSUaWzB0e-v51yBQSBEPX-KU5LiP9MUQg",
+        authDomain: "saas-oftalmo15.firebaseapp.com",
+        databaseURL: "https://saas-oftalmo15-default-rtdb.firebaseio.com",
+        projectId: "saas-oftalmo15",
+        storageBucket: "saas-oftalmo15.firebasestorage.app",
+        messagingSenderId: "1062819668870",
+        appId: "1:1062819668870:web:1d8b4e8e7a9f5c2d3e4f56",
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.database();
+
+      function log(msg, tipo = "") {
+        const el = document.getElementById("log");
+        el.innerHTML += `<div class="${tipo}">${msg}</div>`;
+      }
+
+      async function criarAdmin() {
+        const nome = document.getElementById("nome").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const senha = document.getElementById("senha").value;
+
+        if (!nome || !email || !senha) {
+          log("⚠️ Preencha todos os campos.", "err");
+          return;
+        }
+        if (senha.length < 6) {
+          log("⚠️ Senha deve ter no mínimo 6 caracteres.", "err");
+          return;
+        }
+
+        const btn = document.getElementById("btn");
+        btn.disabled = true;
+        document.getElementById("log").innerHTML = "";
+
+        try {
+          log("🔐 Fazendo login com o usuário existente...");
+          const cred = await auth.signInWithEmailAndPassword(email, senha);
+          const uid = cred.user.uid;
+          log(`✅ Login OK — UID: ${uid}`, "ok");
+
+          const permissoes = {
+            recepcao: document.getElementById("p_recepcao").checked,
+            call_center: document.getElementById("p_call_center").checked,
+            cirurgico: document.getElementById("p_cirurgico").checked,
+            honorarios: document.getElementById("p_honorarios").checked,
+            faturamento: document.getElementById("p_faturamento").checked,
+            patrimonio: document.getElementById("p_patrimonio").checked,
+            estoque: document.getElementById("p_estoque").checked,
+            fornecedores: document.getElementById("p_fornecedores").checked,
+          };
+
+          log("💾 Gravando dados no Realtime Database...");
+          await db.ref(`usuarios/${uid}`).set({
+            nome,
+            email,
+            isAdmin: true,
+            permissoes,
+            criadoEm: new Date().toISOString(),
+          });
+          log("✅ Dados gravados em usuarios/" + uid, "ok");
+
+          log("─────────────────────────────────", "");
+          log(`🎉 Admin configurado com sucesso!`, "ok");
+          log(`📧 E-mail: ${email}`, "ok");
+          log(`🔑 Acesse <strong>index.html</strong> e faça login.`, "ok");
+          log("─────────────────────────────────", "");
+          log(
+            "⚠️ <strong>Delete este arquivo (admin-setup.html) após usar!</strong>",
+            "err",
+          );
+
+          btn.textContent = "✅ Concluído";
+        } catch (err) {
+          log(`❌ Erro: ${err.message}`, "err");
+          btn.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>

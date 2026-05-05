@@ -1,0 +1,118 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Acesso ao sistema de gestÃ£o da clÃ­nica oftalmolÃ³gica"
+    />
+    <meta name="theme-color" content="#2563eb" />
+    <title>GestÃ£o ClÃ­nica â€” Login</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E"
+    />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/login.css" />
+    <!-- Estilos em css/login.css -->
+  </head>
+  <body>
+    <main class="login-page">
+      <div class="login-container">
+        <!-- Marca -->
+        <div class="login-brand">
+          <div class="login-icon" aria-hidden="true">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="login-title">Gestão da Clínica</h1>
+            <p class="login-subtitle">Oftalmo 15</p>
+          </div>
+        </div>
+
+        <!-- Card de login -->
+        <div class="login-card">
+          <h2 class="card-heading">Entrar na sua conta</h2>
+
+          <div
+            id="error-msg"
+            class="error-banner"
+            role="alert"
+            aria-live="assertive"
+            hidden
+          ></div>
+
+          <form id="form-login" novalidate>
+            <div class="field-group">
+              <label class="field-label" for="email">E-mail</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                class="field-input"
+                required
+                autocomplete="email"
+                inputmode="email"
+                placeholder="seu@email.com"
+                aria-required="true"
+              />
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="senha">Senha</label>
+              <input
+                type="password"
+                id="senha"
+                name="senha"
+                class="field-input"
+                required
+                autocomplete="current-password"
+                minlength="6"
+                aria-required="true"
+              />
+            </div>
+            <button
+              type="submit"
+              class="btn-entrar"
+              id="btn-login"
+              aria-label="Entrar no sistema"
+            >
+              <span id="btn-label">Entrar</span>
+            </button>
+          </form>
+        </div>
+
+        <footer class="login-footer">
+          <a href="politica-privacidade.html">Politica de Privacidade (LGPD)</a>
+        </footer>
+      </div>
+    </main>
+
+    <!-- Firebase compat v9 -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="js/login.js"></script>
+  </body>
+</html>

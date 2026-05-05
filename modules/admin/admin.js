@@ -1,0 +1,1245 @@
+// ================================================================
+// admin.js — Módulo Administração (somente Admin Master)
+// ================================================================
+
+window.Modules = window.Modules || {};
+
+window.Modules.admin = {
+  _abaAtiva: "usuarios",
+
+  mount(container) {
+    if (!exigirPermissao("admin", container)) return;
+
+    lucide.createIcons({ nodes: [container] });
+    this._carregarCards();
+    this._renderAba("usuarios");
+
+    container.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        container.querySelectorAll(".tab-btn").forEach((b) => {
+          b.classList.remove("active");
+          b.setAttribute("aria-selected", "false");
+        });
+        btn.classList.add("active");
+        btn.setAttribute("aria-selected", "true");
+        this._renderAba(btn.dataset.tab);
+      });
+    });
+  },
+
+  // ---- CARDS DE RESUMO ----
+  async _carregarCards() {
+    const el = document.getElementById("admin-cards-resumo");
+    if (!el) return;
+    try {
+      const [usuariosSnap, patrimonioSnap, estoqueSnap] = await Promise.all([
+        lerUmaVez(CAMINHOS.usuarios()),
+        lerUmaVez(`${CAMINHOS.base}/patrimonio`),
+        lerUmaVez(`${CAMINHOS.base}/estoque`),
+      ]);
+
+      const totalUsuarios = usuariosSnap ? Object.keys(usuariosSnap).length : 0;
+      const itensPat = patrimonioSnap ? Object.values(patrimonioSnap) : [];
+      const vencendo = itensPat.filter((r) => {
+        const d = diasAteVencer(r.data_vencimento);
+        return d >= 0 && d <= 30;
+      }).length;
+      const itensEst = estoqueSnap ? Object.values(estoqueSnap) : [];
+      const estoqCrit = itensEst.filter(
+        (r) => (r.quantidade || 0) <= (r.estoque_minimo || 0),
+      ).length;
+
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-metric">
+            <i data-lucide="users" width="20" height="20" aria-hidden="true"></i>
+            <span class="metric-label">Usuários</span>
+            <span class="metric-value">${totalUsuarios}</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-metric">
+            <i data-lucide="alert-triangle" width="20" height="20" aria-hidden="true"></i>
+            <span class="metric-label">Patrimônio a Vencer (30d)</span>
+            <span class="metric-value" style="color:${vencendo > 0 ? "var(--warning)" : "inherit"}">${vencendo}</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-metric">
+            <i data-lucide="package" width="20" height="20" aria-hidden="true"></i>
+            <span class="metric-label">Estoque Crítico / Baixo</span>
+            <span class="metric-value" style="color:${estoqCrit > 0 ? "var(--danger)" : "inherit"}">${estoqCrit}</span>
+          </div>
+        </div>
+      `;
+      lucide.createIcons({ nodes: [el] });
+    } catch (err) {
+      el.innerHTML = "";
+    }
+  },
+
+  // ---- ABAS ----
+  _renderAba(aba) {
+    this._abaAtiva = aba;
+    const content = document.getElementById("admin-tab-content");
+    if (!content) return;
+    content.innerHTML = `<div class="loading-wrapper"><div class="spinner"></div>Carregando...</div>`;
+    if (aba === "usuarios") this._renderUsuarios(content);
+    if (aba === "metas") this._renderMetas(content);
+    if (aba === "relatorios") this._renderRelatorios(content);
+    if (aba === "auditoria") this._renderAuditoria(content);
+  },
+
+  // ---- ABA: USUÁRIOS ----
+  async _renderUsuarios(container) {
+    const snap = await lerUmaVez(CAMINHOS.usuarios());
+    const usuarios = snap
+      ? Object.entries(snap).map(([uid, d]) => ({ uid, ...d }))
+      : [];
+
+    const MODULOS_PERM = [
+      "recepcao",
+      "call_center",
+      "cirurgico",
+      "honorarios",
+      "faturamento",
+      "patrimonio",
+      "estoque",
+      "fornecedores",
+    ];
+
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Usuários do Sistema</span>
+          <button class="btn btn-primary btn-sm" id="btn-novo-usuario">
+            <i data-lucide="user-plus" width="14" height="14" aria-hidden="true"></i> Novo Usuário
+          </button>
+        </div>
+        <div class="table-scroll table-mobile-cards">
+          <table class="data-table" aria-label="Usuários">
+            <thead>
+              <tr>
+                <th scope="col">Nome</th>
+                <th scope="col">E-mail</th>
+                <th scope="col">Perfil</th>
+                <th scope="col">Módulos</th>
+                <th scope="col">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                usuarios.length === 0
+                  ? `<tr><td colspan="5"><div class="table-empty"><p>Nenhum usuário cadastrado.</p></div></td></tr>`
+                  : usuarios
+                      .map(
+                        (u) => `
+                  <tr>
+                    <td data-label="Nome">${u.nome || "—"}</td>
+                    <td data-label="E-mail">${u.email || "—"}</td>
+                    <td data-label="Perfil"><span class="badge ${u.isAdmin ? "badge-primary" : "badge-info"}">${u.isAdmin ? "Admin" : "Usuário"}</span></td>
+                    <td data-label="Módulos" style="font-size:.75rem">${
+                      Object.keys(u.permissoes || {})
+                        .filter((m) => u.permissoes[m])
+                        .join(", ") || "—"
+                    }</td>
+                    <td data-label="Ações">
+                      <button class="btn btn-ghost btn-icon btn-sm" onclick="Modules.admin._editarUsuario('${u.uid}')" aria-label="Editar usuário">
+                        <i data-lucide="pencil" width="14" height="14" aria-hidden="true"></i>
+                      </button>
+                      <button class="btn btn-ghost btn-icon btn-sm btn-danger" onclick="Modules.admin._excluirUsuario('${u.uid}', '${u.nome || ""}')" aria-label="Excluir usuário">
+                        <i data-lucide="trash-2" width="14" height="14" aria-hidden="true"></i>
+                      </button>
+                    </td>
+                  </tr>
+                `,
+                      )
+                      .join("")
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    lucide.createIcons({ nodes: [container] });
+
+    container
+      .querySelector("#btn-novo-usuario")
+      ?.addEventListener("click", () => this._modalUsuario(null));
+  },
+
+  _modalUsuario(uid) {
+    lerUmaVez(CAMINHOS.usuarios()).then((snap) => {
+      const user = snap && uid ? snap[uid] : null;
+      const MODULOS_PERM = [
+        "recepcao",
+        "call_center",
+        "cirurgico",
+        "honorarios",
+        "faturamento",
+        "patrimonio",
+        "estoque",
+        "fornecedores",
+      ];
+      Modal.abrirModal({
+        titulo: uid ? "Editar Usuário" : "Novo Usuário",
+        icone: "user",
+        tamanho: "md",
+        corpo: `
+          <div class="form-group">
+            <label class="form-label required" for="adm-u-nome">Nome</label>
+            <input type="text" id="adm-u-nome" class="form-input" value="${user?.nome || ""}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label required" for="adm-u-email">E-mail</label>
+            <input type="email" id="adm-u-email" class="form-input" value="${user?.email || ""}" ${uid ? "readonly" : ""} required>
+          </div>
+          ${
+            !uid
+              ? `
+          <div class="form-group">
+            <label class="form-label required" for="adm-u-senha">Senha inicial</label>
+            <input type="password" id="adm-u-senha" class="form-input" minlength="6" autocomplete="new-password">
+          </div>`
+              : ""
+          }
+          <div class="form-check mb-1">
+            <input type="checkbox" id="adm-u-admin" ${user?.isAdmin ? "checked" : ""}>
+            <label for="adm-u-admin">Admin Master</label>
+          </div>
+          <div id="adm-u-perm-container">
+            <p style="font-size:.8rem;font-weight:600;margin-bottom:.5rem">Permissões por módulo:</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem">
+              ${MODULOS_PERM.map(
+                (m) => `
+                <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;cursor:pointer">
+                  <input type="checkbox" id="perm-${m}" ${user?.permissoes?.[m] ? "checked" : ""}>
+                  ${m.replace(/_/g, " ")}
+                </label>
+              `,
+              ).join("")}
+            </div>
+          </div>
+        `,
+        botoes: [
+          {
+            label: "Cancelar",
+            classe: "btn-secondary",
+            onClick: () => Modal.fecharModal(),
+          },
+          {
+            label: "Salvar",
+            classe: "btn-primary",
+            onClick: () => this._salvarUsuario(uid, MODULOS_PERM),
+          },
+        ],
+      });
+    });
+  },
+
+  async _salvarUsuario(uid, MODULOS_PERM) {
+    const nome = document.getElementById("adm-u-nome")?.value.trim();
+    const email = document.getElementById("adm-u-email")?.value.trim();
+    const senha = document.getElementById("adm-u-senha")?.value || "";
+    const admin = document.getElementById("adm-u-admin")?.checked || false;
+    const permissoes = {};
+    MODULOS_PERM.forEach((m) => {
+      permissoes[m] = !!document.getElementById(`perm-${m}`)?.checked;
+    });
+    if (admin) MODULOS_PERM.forEach((m) => (permissoes[m] = true));
+
+    if (!nome || !email) {
+      Alerts.aviso("Preencha nome e e-mail.");
+      return;
+    }
+
+    try {
+      if (uid) {
+        await atualizar(`${CAMINHOS.usuarios()}/${uid}`, {
+          nome,
+          isAdmin: admin,
+          permissoes,
+        });
+        Alerts.sucesso("Usuário atualizado!");
+      } else {
+        if (senha.length < 6) {
+          Alerts.aviso("Senha deve ter no mínimo 6 caracteres.");
+          return;
+        }
+        const cred = await firebase
+          .auth()
+          .createUserWithEmailAndPassword(email, senha);
+        const novoUid = cred.user.uid;
+        await atualizar(`${CAMINHOS.usuarios()}/${novoUid}`, {
+          nome,
+          email,
+          isAdmin: admin,
+          permissoes,
+        });
+        Alerts.sucesso("Usuário criado!");
+      }
+      Modal.fecharModal();
+      this._renderAba("usuarios");
+    } catch (err) {
+      Alerts.erro("Erro ao salvar usuário: " + (err.message || ""));
+    }
+  },
+
+  _editarUsuario(uid) {
+    this._modalUsuario(uid);
+  },
+
+  _excluirUsuario(uid, nome) {
+    Modal.confirmar(
+      `Excluir o usuário "${nome}" e todos os seus dados? (LGPD Art. 18 — Direito ao Apagamento)`,
+      async () => {
+        try {
+          await excluirContaUsuario(uid);
+          Alerts.sucesso("Usuário e dados excluídos conforme LGPD.");
+          this._renderAba("usuarios");
+        } catch (err) {
+          Alerts.erro("Erro ao excluir usuário: " + (err.message || ""));
+        }
+      },
+      "Confirmar Exclusão de Conta",
+    );
+  },
+
+  // ---- ABA: METAS ----
+  async _renderMetas(container) {
+    const snap = await lerUmaVez(CAMINHOS.metas());
+    const metas = snap
+      ? Object.entries(snap).map(([k, v]) => ({ _id: k, ...v }))
+      : [];
+
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Metas por Médico</span>
+        </div>
+        <form id="form-meta" novalidate>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label required" for="meta-nome">Nome do Médico</label>
+              <select id="meta-nome" class="form-select" required>
+                <option value="">Selecione...</option>
+                <option>Dra. Mariza</option>
+                <option>Dra. Fabiana</option>
+                <option>Dra. Mariana</option>
+                <option>Dr. Dante</option>
+                <option>Dr. Alberto</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label required" for="meta-valor">Meta Mensal (R$)</label>
+              <input type="number" id="meta-valor" class="form-input" min="0" step="100" required>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="plus" width="16" height="16" aria-hidden="true"></i> Adicionar Meta
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="card mt-2">
+        <div class="card-header"><span class="card-title">Metas Cadastradas</span></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Médico</th><th>Meta Mensal</th><th>Ações</th></tr></thead>
+            <tbody id="tbody-metas">
+              ${
+                metas.length === 0
+                  ? `<tr><td colspan="3"><div class="table-empty"><p>Nenhuma meta cadastrada.</p></div></td></tr>`
+                  : metas
+                      .map(
+                        (m) => `
+                  <tr>
+                    <td>${m.nome}</td>
+                    <td class="table-number">${formatarMoeda(m.valor || 0)}</td>
+                    <td>
+                      <button class="btn btn-ghost btn-icon btn-sm btn-danger" onclick="Modules.admin._removerMeta('${m._id}')" aria-label="Remover meta">
+                        <i data-lucide="trash-2" width="14" height="14" aria-hidden="true"></i>
+                      </button>
+                    </td>
+                  </tr>
+                `,
+                      )
+                      .join("")
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    lucide.createIcons({ nodes: [container] });
+
+    container
+      .querySelector("#form-meta")
+      ?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const nome = document.getElementById("meta-nome").value.trim();
+        const valor =
+          parseFloat(document.getElementById("meta-valor").value) || 0;
+        if (!nome || valor <= 0) {
+          Alerts.aviso("Preencha nome e valor.");
+          return;
+        }
+        try {
+          await criar(CAMINHOS.metas(), { nome, valor });
+          Alerts.sucesso("Meta adicionada!");
+          this._renderAba("metas");
+        } catch (err) {
+          Alerts.erro("Erro ao salvar meta.");
+        }
+      });
+  },
+
+  async _removerMeta(id) {
+    Modal.confirmar("Remover esta meta?", async () => {
+      await remover(`${CAMINHOS.metas()}/${id}`);
+      Alerts.sucesso("Meta removida.");
+      this._renderAba("metas");
+    });
+  },
+
+  // ---- ABA: RELATÓRIOS ----
+  async _renderRelatorios(container) {
+    const mesAtual = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+    container.innerHTML = `
+      <div class="card mb-3">
+        <div class="card-header">
+          <span class="card-title">
+            <i data-lucide="file-bar-chart" width="18" height="18" aria-hidden="true"></i>
+            Relatórios Detalhados
+          </span>
+        </div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="min-width:160px;margin:0">
+            <label class="form-label">Mês/Ano</label>
+            <input type="month" id="rel-mes" class="filter-input" value="${mesAtual}">
+          </div>
+          <button class="btn btn-primary" id="btn-gerar-relatorio">
+            <i data-lucide="search" width="16" height="16" aria-hidden="true"></i> Gerar Relatório
+          </button>
+          <button class="btn btn-secondary" id="btn-exportar-pdf" style="display:none">
+            <i data-lucide="file-down" width="16" height="16" aria-hidden="true"></i> Exportar PDF
+          </button>
+          <button class="btn btn-secondary" id="btn-exportar-excel" style="display:none">
+            <i data-lucide="table" width="16" height="16" aria-hidden="true"></i> Exportar Excel
+          </button>
+        </div>
+      </div>
+      <div id="rel-resultado"></div>
+    `;
+    lucide.createIcons({ nodes: [container] });
+
+    container
+      .querySelector("#btn-gerar-relatorio")
+      ?.addEventListener("click", async () => {
+        const mesInput = document.getElementById("rel-mes")?.value;
+        if (!mesInput) return;
+        const [ano, mes] = mesInput.split("-").map(Number);
+        const { inicio, fim } = intervaloMes(ano, mes);
+        const resultEl = document.getElementById("rel-resultado");
+        resultEl.innerHTML =
+          '<div class="loading-wrapper"><div class="spinner"></div>Gerando relatório…</div>';
+
+        const [honorariosArr, cirurgiasArr, recepcaoArr, metasSnap] =
+          await Promise.all([
+            buscarIntervalo("honorarios", inicio, fim),
+            buscarIntervalo("cirurgias", inicio, fim),
+            buscarIntervalo("recepcao", inicio, fim),
+            lerUmaVez(CAMINHOS.metas()),
+          ]);
+
+        const lancados = honorariosArr.filter((r) => r.lancado);
+        const pendentes = honorariosArr.filter((r) => !r.lancado);
+        const metas = metasSnap ? Object.values(metasSnap) : [];
+        const nomeMes = new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        });
+
+        // ── 1. KPIs gerais ──────────────────────────────────────────
+        const kpiAtend = recepcaoArr.length;
+        const kpiCirurg = cirurgiasArr.length;
+        const kpiPend = pendentes.length;
+        const kpiTotalPF = lancados.reduce(
+          (s, r) =>
+            s +
+            (r.honorario_cirurgiao_pf || 0) +
+            (r.lio_parte_cirurgiao || 0) +
+            (r.honorario_auxiliar_pf || 0) +
+            (r.honorario_instrumentador_pf || 0),
+          0,
+        );
+        const kpiLioCli = lancados.reduce(
+          (s, r) => s + (r.lio_parte_clinica || 0),
+          0,
+        );
+        const kpiCNPJ = lancados.reduce(
+          (s, r) => s + (r.valor_clinica_cnpj || 0),
+          0,
+        );
+        const kpiClinica = kpiCNPJ + kpiLioCli;
+        const kpiGeral = kpiTotalPF + kpiClinica;
+
+        // ── 2. Por médico (como cirurgião) ───────────────────────────
+        const porMedico = {};
+        lancados.forEach((r) => {
+          const n = r.nome_cirurgiao || "Desconhecido";
+          if (!porMedico[n])
+            porMedico[n] = {
+              cirs: 0,
+              honPF: 0,
+              lioCir: 0,
+              auxPF: 0,
+              instPF: 0,
+              total: 0,
+              pend: 0,
+            };
+          porMedico[n].cirs++;
+          porMedico[n].honPF += r.honorario_cirurgiao_pf || 0;
+          porMedico[n].lioCir += r.lio_parte_cirurgiao || 0;
+          porMedico[n].auxPF += r.honorario_auxiliar_pf || 0;
+          porMedico[n].instPF += r.honorario_instrumentador_pf || 0;
+          porMedico[n].total +=
+            (r.honorario_cirurgiao_pf || 0) +
+            (r.lio_parte_cirurgiao || 0) +
+            (r.honorario_auxiliar_pf || 0) +
+            (r.honorario_instrumentador_pf || 0);
+        });
+        pendentes.forEach((r) => {
+          const n = r.nome_cirurgiao || "Desconhecido";
+          if (!porMedico[n])
+            porMedico[n] = {
+              cirs: 0,
+              honPF: 0,
+              lioCir: 0,
+              auxPF: 0,
+              instPF: 0,
+              total: 0,
+              pend: 0,
+            };
+          porMedico[n].pend++;
+        });
+
+        // ── 3. Por tipo de cirurgia ──────────────────────────────────
+        const porTipo = {};
+        cirurgiasArr.forEach((c) => {
+          const t = c.tipo_cirurgia || "Não informado";
+          porTipo[t] = (porTipo[t] || 0) + 1;
+        });
+
+        // ── 4. Clínica CNPJ detalhado ────────────────────────────────
+        const porMedicoCNPJ = {};
+        lancados.forEach((r) => {
+          const n = r.nome_cirurgiao || "Desconhecido";
+          if (!porMedicoCNPJ[n])
+            porMedicoCNPJ[n] = { cirs: 0, lioCli: 0, cnpj: 0, total: 0 };
+          porMedicoCNPJ[n].cirs++;
+          porMedicoCNPJ[n].lioCli += r.lio_parte_clinica || 0;
+          porMedicoCNPJ[n].cnpj += r.valor_clinica_cnpj || 0;
+          porMedicoCNPJ[n].total +=
+            (r.lio_parte_clinica || 0) + (r.valor_clinica_cnpj || 0);
+        });
+
+        // ── Função auxiliar: badge % meta ────────────────────────────
+        const badgeMeta = (nome, total) => {
+          const m = metas.find((x) => x.nome === nome);
+          if (!m || !m.valor) return "";
+          const pct = Math.min(100, Math.round((total / m.valor) * 100));
+          const cor =
+            pct >= 100 ? "#059669" : pct >= 70 ? "#d97706" : "#dc2626";
+          return `<div style="margin-top:.4rem"><div style="background:var(--bg-secondary);border-radius:3px;height:6px;width:100%"><div style="background:${cor};border-radius:3px;height:6px;width:${pct}%"></div></div><span style="font-size:.7rem;color:${cor}">${pct}% da meta (${formatarMoeda(m.valor)})</span></div>`;
+        };
+
+        const MEDICOS_SORTED = Object.keys(porMedico).sort();
+
+        resultEl.innerHTML = `
+        <!-- KPIs -->
+        <div style="margin-bottom:1rem">
+          <h3 style="font-size:.95rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">
+            Resumo Geral — ${nomeMes}
+          </h3>
+          <div class="cards-grid cards-grid-3" style="gap:.75rem">
+            <div class="card" style="border-left:4px solid #2563eb">
+              <div class="card-metric">
+                <span class="metric-label">Atendimentos (Recepção)</span>
+                <span class="metric-value">${kpiAtend}</span>
+              </div>
+            </div>
+            <div class="card" style="border-left:4px solid #7c3aed">
+              <div class="card-metric">
+                <span class="metric-label">Cirurgias Registradas</span>
+                <span class="metric-value">${kpiCirurg}</span>
+              </div>
+            </div>
+            <div class="card" style="border-left:4px solid #f59e0b">
+              <div class="card-metric">
+                <span class="metric-label">Honorários Pendentes</span>
+                <span class="metric-value" style="color:${kpiPend > 0 ? "#d97706" : "inherit"}">${kpiPend}</span>
+              </div>
+            </div>
+            <div class="card" style="border-left:4px solid #059669">
+              <div class="card-metric">
+                <span class="metric-label">Total Pessoa Física (PF)</span>
+                <span class="metric-value">${formatarMoeda(kpiTotalPF)}</span>
+              </div>
+            </div>
+            <div class="card" style="border-left:4px solid #0891b2">
+              <div class="card-metric">
+                <span class="metric-label">Total Clínica (CNPJ)</span>
+                <span class="metric-value">${formatarMoeda(kpiClinica)}</span>
+              </div>
+            </div>
+            <div class="card" style="border-left:4px solid #1e293b">
+              <div class="card-metric">
+                <span class="metric-label">Faturamento Total</span>
+                <span class="metric-value" style="color:var(--accent)">${formatarMoeda(kpiGeral)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Por médico -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <span class="card-title">
+              <i data-lucide="stethoscope" width="16" height="16" aria-hidden="true"></i>
+              Honorários por Médico (PF)
+            </span>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table" id="rel-tabela-medicos">
+              <thead>
+                <tr>
+                  <th>Médico</th>
+                  <th class="text-right">Cirurgias</th>
+                  <th class="text-right">Pend.</th>
+                  <th class="text-right">Hon. Cirurgião PF</th>
+                  <th class="text-right">LIO (cirurgião)</th>
+                  <th class="text-right">Como Auxiliar PF</th>
+                  <th class="text-right">Como Instrument.</th>
+                  <th class="text-right">Total PF</th>
+                  <th>Meta</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  MEDICOS_SORTED.length === 0
+                    ? `<tr><td colspan="9"><div class="table-empty"><p>Nenhum honorário lançado neste período.</p></div></td></tr>`
+                    : MEDICOS_SORTED.map((n) => {
+                        const d = porMedico[n];
+                        return `<tr>
+                        <td><strong>${n}</strong>${badgeMeta(n, d.total)}</td>
+                        <td class="table-number">${d.cirs}</td>
+                        <td class="table-number" style="color:${d.pend > 0 ? "#d97706" : "inherit"}">${d.pend}</td>
+                        <td class="table-number">${formatarMoeda(d.honPF)}</td>
+                        <td class="table-number">${formatarMoeda(d.lioCir)}</td>
+                        <td class="table-number">${formatarMoeda(d.auxPF)}</td>
+                        <td class="table-number">${formatarMoeda(d.instPF)}</td>
+                        <td class="table-number fw-6" style="color:var(--accent)">${formatarMoeda(d.total)}</td>
+                        <td style="min-width:140px">${(() => {
+                          const m = metas.find((x) => x.nome === n);
+                          return m ? formatarMoeda(m.valor) : "—";
+                        })()}</td>
+                      </tr>`;
+                      }).join("")
+                }
+              </tbody>
+              ${
+                MEDICOS_SORTED.length > 0
+                  ? `
+              <tfoot>
+                <tr style="background:var(--bg-secondary);font-weight:700">
+                  <td>TOTAIS</td>
+                  <td class="table-number">${lancados.length}</td>
+                  <td class="table-number">${pendentes.length}</td>
+                  <td class="table-number">${formatarMoeda(lancados.reduce((s, r) => s + (r.honorario_cirurgiao_pf || 0), 0))}</td>
+                  <td class="table-number">${formatarMoeda(lancados.reduce((s, r) => s + (r.lio_parte_cirurgiao || 0), 0))}</td>
+                  <td class="table-number">${formatarMoeda(lancados.reduce((s, r) => s + (r.honorario_auxiliar_pf || 0), 0))}</td>
+                  <td class="table-number">${formatarMoeda(lancados.reduce((s, r) => s + (r.honorario_instrumentador_pf || 0), 0))}</td>
+                  <td class="table-number" style="color:var(--accent)">${formatarMoeda(kpiTotalPF)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>`
+                  : ""
+              }
+            </table>
+          </div>
+        </div>
+
+        <!-- Clínica CNPJ por médico -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <span class="card-title">
+              <i data-lucide="building-2" width="16" height="16" aria-hidden="true"></i>
+              Faturamento Clínica (CNPJ) por Médico
+            </span>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table" id="rel-tabela-clinica">
+              <thead>
+                <tr>
+                  <th>Médico (Cirurgião)</th>
+                  <th class="text-right">Cirurgias</th>
+                  <th class="text-right">LIO (parte clínica)</th>
+                  <th class="text-right">Honorários CNPJ</th>
+                  <th class="text-right">Total Clínica</th>
+                  <th class="text-right">% do Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  Object.keys(porMedicoCNPJ).length === 0
+                    ? `<tr><td colspan="6"><div class="table-empty"><p>Sem dados.</p></div></td></tr>`
+                    : Object.keys(porMedicoCNPJ)
+                        .sort()
+                        .map((n) => {
+                          const d = porMedicoCNPJ[n];
+                          const pct =
+                            kpiClinica > 0
+                              ? ((d.total / kpiClinica) * 100).toFixed(1)
+                              : "0.0";
+                          return `<tr>
+                        <td><strong>${n}</strong></td>
+                        <td class="table-number">${d.cirs}</td>
+                        <td class="table-number">${formatarMoeda(d.lioCli)}</td>
+                        <td class="table-number">${formatarMoeda(d.cnpj)}</td>
+                        <td class="table-number fw-6" style="color:var(--accent)">${formatarMoeda(d.total)}</td>
+                        <td class="table-number">${pct}%</td>
+                      </tr>`;
+                        })
+                        .join("")
+                }
+              </tbody>
+              ${
+                Object.keys(porMedicoCNPJ).length > 0
+                  ? `
+              <tfoot>
+                <tr style="background:var(--bg-secondary);font-weight:700">
+                  <td>TOTAIS</td>
+                  <td class="table-number">${lancados.length}</td>
+                  <td class="table-number">${formatarMoeda(kpiLioCli)}</td>
+                  <td class="table-number">${formatarMoeda(kpiCNPJ)}</td>
+                  <td class="table-number" style="color:var(--accent)">${formatarMoeda(kpiClinica)}</td>
+                  <td class="table-number">100%</td>
+                </tr>
+              </tfoot>`
+                  : ""
+              }
+            </table>
+          </div>
+        </div>
+
+        <!-- Por tipo de cirurgia -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <span class="card-title">
+              <i data-lucide="scissors" width="16" height="16" aria-hidden="true"></i>
+              Cirurgias por Tipo
+            </span>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table" id="rel-tabela-tipos">
+              <thead>
+                <tr>
+                  <th>Tipo de Cirurgia</th>
+                  <th class="text-right">Quantidade</th>
+                  <th class="text-right">% do Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  Object.keys(porTipo).length === 0
+                    ? `<tr><td colspan="3"><div class="table-empty"><p>Nenhuma cirurgia neste período.</p></div></td></tr>`
+                    : Object.entries(porTipo)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([tipo, qtd]) => {
+                          const pct =
+                            kpiCirurg > 0
+                              ? ((qtd / kpiCirurg) * 100).toFixed(1)
+                              : "0.0";
+                          const barW =
+                            kpiCirurg > 0
+                              ? Math.round((qtd / kpiCirurg) * 100)
+                              : 0;
+                          return `<tr>
+                        <td>
+                          ${tipo}
+                          <div style="background:var(--bg-secondary);border-radius:3px;height:4px;margin-top:.3rem;width:100%">
+                            <div style="background:var(--accent);border-radius:3px;height:4px;width:${barW}%"></div>
+                          </div>
+                        </td>
+                        <td class="table-number fw-6">${qtd}</td>
+                        <td class="table-number">${pct}%</td>
+                      </tr>`;
+                        })
+                        .join("")
+                }
+              </tbody>
+              ${
+                Object.keys(porTipo).length > 0
+                  ? `
+              <tfoot>
+                <tr style="background:var(--bg-secondary);font-weight:700">
+                  <td>TOTAL</td>
+                  <td class="table-number">${kpiCirurg}</td>
+                  <td class="table-number">100%</td>
+                </tr>
+              </tfoot>`
+                  : ""
+              }
+            </table>
+          </div>
+        </div>
+
+        <!-- Detalhamento completo das cirurgias -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <i data-lucide="list" width="16" height="16" aria-hidden="true"></i>
+              Detalhamento de Cirurgias — ${nomeMes}
+            </span>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table" id="rel-tabela-detalhe">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Paciente</th>
+                  <th>Cirurgião</th>
+                  <th>Auxiliar</th>
+                  <th>Tipo</th>
+                  <th>Olho</th>
+                  <th>LIO</th>
+                  <th class="text-right">Valor LIO</th>
+                  <th class="text-right">Valor Total</th>
+                  <th>Honorários</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  cirurgiasArr.length === 0
+                    ? `<tr><td colspan="10"><div class="table-empty"><p>Sem cirurgias neste período.</p></div></td></tr>`
+                    : cirurgiasArr
+                        .sort((a, b) => a._data.localeCompare(b._data))
+                        .map(
+                          (c) => `
+                    <tr>
+                      <td>${formatarData(c._data)}</td>
+                      <td>${c.paciente || "—"}</td>
+                      <td>${c.medico_cirurgiao || "—"}</td>
+                      <td>${c.medico_auxiliar || "—"}</td>
+                      <td>${c.tipo_cirurgia || "—"}</td>
+                      <td>${c.olho_operado || "—"}</td>
+                      <td><span class="badge ${c.lio_implantada ? "badge-info" : "badge-neutral"}">${c.lio_implantada ? c.tipo_lio || "Sim" : "Não"}</span></td>
+                      <td class="table-number">${c.lio_implantada ? formatarMoeda(c.valor_lio) : "—"}</td>
+                      <td class="table-number fw-6">${formatarMoeda(c.valor_total)}</td>
+                      <td><span class="badge ${c.honorarios_lancados ? "badge-success" : "badge-warning"}">${c.honorarios_lancados ? "Lançado" : "Pendente"}</span></td>
+                    </tr>`,
+                        )
+                        .join("")
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+        lucide.createIcons({ nodes: [resultEl] });
+
+        // Mostrar botões de exportação
+        document.getElementById("btn-exportar-pdf").style.display = "";
+        document.getElementById("btn-exportar-excel").style.display = "";
+
+        // Guardar dados para export
+        this._dadosRelatorio = {
+          nomeMes,
+          cirurgiasArr,
+          lancados,
+          pendentes,
+          porMedico,
+          porMedicoCNPJ,
+          porTipo,
+          kpiAtend,
+          kpiCirurg,
+          kpiPend,
+          kpiTotalPF,
+          kpiClinica,
+          kpiGeral,
+        };
+      });
+
+    // Export PDF
+    container
+      .querySelector("#btn-exportar-pdf")
+      ?.addEventListener("click", () => this._exportarRelatorioPDF());
+    // Export Excel
+    container
+      .querySelector("#btn-exportar-excel")
+      ?.addEventListener("click", () => this._exportarRelatorioExcel());
+  },
+
+  _exportarRelatorioPDF() {
+    const d = this._dadosRelatorio;
+    if (!d) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
+    });
+    const titulo = `Relatório Detalhado — ${d.nomeMes}`;
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(titulo, 14, 16);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 22);
+
+    // KPIs
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("Resumo Geral", 14, 32);
+    doc.autoTable({
+      startY: 35,
+      head: [
+        [
+          "Atendimentos",
+          "Cirurgias",
+          "Honorários Pendentes",
+          "Total PF",
+          "Total Clínica CNPJ",
+          "Faturamento Total",
+        ],
+      ],
+      body: [
+        [
+          d.kpiAtend,
+          d.kpiCirurg,
+          d.kpiPend,
+          formatarMoeda(d.kpiTotalPF),
+          formatarMoeda(d.kpiClinica),
+          formatarMoeda(d.kpiGeral),
+        ],
+      ],
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    // Por médico PF
+    doc.setFont("helvetica", "bold");
+    doc.text("Honorários por Médico (PF)", 14, doc.lastAutoTable.finalY + 10);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 13,
+      head: [
+        [
+          "Médico",
+          "Cirurgias",
+          "Pend.",
+          "Hon. PF",
+          "LIO Cirurgião",
+          "Auxiliar PF",
+          "Instrumentador",
+          "Total PF",
+        ],
+      ],
+      body: Object.keys(d.porMedico)
+        .sort()
+        .map((n) => {
+          const m = d.porMedico[n];
+          return [
+            n,
+            m.cirs,
+            m.pend,
+            formatarMoeda(m.honPF),
+            formatarMoeda(m.lioCir),
+            formatarMoeda(m.auxPF),
+            formatarMoeda(m.instPF),
+            formatarMoeda(m.total),
+          ];
+        }),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [124, 58, 237] },
+    });
+
+    // Clínica CNPJ
+    doc.setFont("helvetica", "bold");
+    doc.text("Faturamento Clínica (CNPJ)", 14, doc.lastAutoTable.finalY + 10);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 13,
+      head: [
+        ["Médico", "Cirurgias", "LIO Clínica", "Hon. CNPJ", "Total Clínica"],
+      ],
+      body: Object.keys(d.porMedicoCNPJ)
+        .sort()
+        .map((n) => {
+          const m = d.porMedicoCNPJ[n];
+          return [
+            n,
+            m.cirs,
+            formatarMoeda(m.lioCli),
+            formatarMoeda(m.cnpj),
+            formatarMoeda(m.total),
+          ];
+        }),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [8, 145, 178] },
+    });
+
+    // Tipos de cirurgia
+    doc.setFont("helvetica", "bold");
+    doc.text("Cirurgias por Tipo", 14, doc.lastAutoTable.finalY + 10);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 13,
+      head: [["Tipo de Cirurgia", "Quantidade", "%"]],
+      body: Object.entries(d.porTipo)
+        .sort((a, b) => b[1] - a[1])
+        .map(([tipo, qtd]) => [
+          tipo,
+          qtd,
+          d.kpiCirurg > 0 ? ((qtd / d.kpiCirurg) * 100).toFixed(1) + "%" : "0%",
+        ]),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [5, 150, 105] },
+    });
+
+    // Detalhamento cirurgias
+    if (d.cirurgiasArr.length > 0) {
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Detalhamento de Cirurgias — ${d.nomeMes}`, 14, 16);
+      doc.autoTable({
+        startY: 22,
+        head: [
+          [
+            "Data",
+            "Paciente",
+            "Cirurgião",
+            "Auxiliar",
+            "Tipo",
+            "Olho",
+            "LIO",
+            "Valor LIO",
+            "Valor Total",
+            "Honorários",
+          ],
+        ],
+        body: d.cirurgiasArr
+          .sort((a, b) => a._data.localeCompare(b._data))
+          .map((c) => [
+            formatarData(c._data),
+            c.paciente || "—",
+            c.medico_cirurgiao || "—",
+            c.medico_auxiliar || "—",
+            c.tipo_cirurgia || "—",
+            c.olho_operado || "—",
+            c.lio_implantada ? c.tipo_lio || "Sim" : "Não",
+            c.lio_implantada ? formatarMoeda(c.valor_lio) : "—",
+            formatarMoeda(c.valor_total),
+            c.honorarios_lancados ? "Lançado" : "Pendente",
+          ]),
+        styles: { fontSize: 6 },
+        headStyles: { fillColor: [100, 116, 139] },
+      });
+    }
+
+    doc.save(`relatorio-${d.nomeMes.replace(/ /g, "-")}.pdf`);
+  },
+
+  _exportarRelatorioExcel() {
+    const d = this._dadosRelatorio;
+    if (!d) return;
+    const wb = XLSX.utils.book_new();
+
+    // Aba KPIs
+    const wsKpi = XLSX.utils.aoa_to_sheet([
+      ["Resumo Geral", d.nomeMes],
+      [],
+      ["Atendimentos", d.kpiAtend],
+      ["Cirurgias", d.kpiCirurg],
+      ["Honorários Pendentes", d.kpiPend],
+      ["Total PF", d.kpiTotalPF],
+      ["Total Clínica CNPJ", d.kpiClinica],
+      ["Faturamento Total", d.kpiGeral],
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsKpi, "Resumo");
+
+    // Aba por médico
+    const wsMed = XLSX.utils.aoa_to_sheet([
+      [
+        "Médico",
+        "Cirurgias",
+        "Pendentes",
+        "Hon. PF",
+        "LIO Cirurgião",
+        "Auxiliar PF",
+        "Instrumentador",
+        "Total PF",
+      ],
+      ...Object.keys(d.porMedico)
+        .sort()
+        .map((n) => {
+          const m = d.porMedico[n];
+          return [
+            n,
+            m.cirs,
+            m.pend,
+            m.honPF,
+            m.lioCir,
+            m.auxPF,
+            m.instPF,
+            m.total,
+          ];
+        }),
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsMed, "Por Médico PF");
+
+    // Aba clínica
+    const wsCli = XLSX.utils.aoa_to_sheet([
+      ["Médico", "Cirurgias", "LIO Clínica", "Hon. CNPJ", "Total Clínica"],
+      ...Object.keys(d.porMedicoCNPJ)
+        .sort()
+        .map((n) => {
+          const m = d.porMedicoCNPJ[n];
+          return [n, m.cirs, m.lioCli, m.cnpj, m.total];
+        }),
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsCli, "Clínica CNPJ");
+
+    // Aba tipos
+    const wsTipo = XLSX.utils.aoa_to_sheet([
+      ["Tipo de Cirurgia", "Quantidade", "%"],
+      ...Object.entries(d.porTipo)
+        .sort((a, b) => b[1] - a[1])
+        .map(([tipo, qtd]) => [
+          tipo,
+          qtd,
+          d.kpiCirurg > 0 ? +((qtd / d.kpiCirurg) * 100).toFixed(1) : 0,
+        ]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsTipo, "Por Tipo");
+
+    // Aba detalhamento
+    const wsDet = XLSX.utils.aoa_to_sheet([
+      [
+        "Data",
+        "Paciente",
+        "Cirurgião",
+        "Auxiliar",
+        "Tipo",
+        "Olho",
+        "LIO",
+        "Valor LIO",
+        "Valor Total",
+        "Honorários",
+      ],
+      ...d.cirurgiasArr
+        .sort((a, b) => a._data.localeCompare(b._data))
+        .map((c) => [
+          c._data,
+          c.paciente || "",
+          c.medico_cirurgiao || "",
+          c.medico_auxiliar || "",
+          c.tipo_cirurgia || "",
+          c.olho_operado || "",
+          c.lio_implantada ? c.tipo_lio || "Sim" : "Não",
+          c.lio_implantada ? c.valor_lio || 0 : 0,
+          c.valor_total || 0,
+          c.honorarios_lancados ? "Lançado" : "Pendente",
+        ]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsDet, "Detalhamento");
+
+    XLSX.writeFile(wb, `relatorio-${d.nomeMes.replace(/ /g, "-")}.xlsx`);
+  },
+
+  // ---- ABA: AUDITORIA ----
+  async _renderAuditoria(container) {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Log de Auditoria</span>
+          <div class="table-actions" id="audit-acoes"></div>
+        </div>
+        <div class="filter-bar mb-2">
+          <input type="text" id="audit-busca" class="filter-input" placeholder="Buscar por ação, módulo ou usuário…">
+        </div>
+        <div class="loading-wrapper" id="audit-loading"><div class="spinner"></div>Carregando...</div>
+        <div class="table-scroll" id="audit-table-wrap" style="display:none">
+          <table class="data-table" id="tabela-auditoria" aria-label="Log de auditoria">
+            <thead>
+              <tr>
+                <th scope="col">Data/Hora</th>
+                <th scope="col">Usuário</th>
+                <th scope="col">Ação</th>
+                <th scope="col">Módulo</th>
+                <th scope="col">ID Registro</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-auditoria"></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    const acoes = container.querySelector("#audit-acoes");
+    if (acoes)
+      acoes.appendChild(
+        criarBotaoExportar("tabela-auditoria", "Auditoria", "auditoria"),
+      );
+    lucide.createIcons({ nodes: [container] });
+
+    let todosLogs = [];
+    try {
+      const snap = await lerUmaVez(`auditoria`);
+      todosLogs = snap
+        ? Object.values(snap).sort(
+            (a, b) => (b.timestamp || 0) - (a.timestamp || 0),
+          )
+        : [];
+    } catch (_) {}
+
+    document.getElementById("audit-loading").style.display = "none";
+    document.getElementById("audit-table-wrap").style.display = "";
+
+    const renderLog = (lista) => {
+      const tbody = document.getElementById("tbody-auditoria");
+      if (!tbody) return;
+      tbody.innerHTML =
+        lista
+          .slice(0, 200)
+          .map(
+            (r) => `
+        <tr>
+          <td>${r.timestamp ? new Date(r.timestamp).toLocaleString("pt-BR") : "—"}</td>
+          <td>${r.usuario_nome || r.uid || "—"}</td>
+          <td><span class="badge badge-info">${r.acao || "—"}</span></td>
+          <td>${r.modulo || "—"}</td>
+          <td><code>${r.registro_id || "—"}</code></td>
+        </tr>
+      `,
+          )
+          .join("") ||
+        `<tr><td colspan="5"><div class="table-empty"><p>Nenhum log encontrado.</p></div></td></tr>`;
+    };
+
+    renderLog(todosLogs);
+    container.querySelector("#audit-busca")?.addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase();
+      renderLog(
+        todosLogs.filter(
+          (r) =>
+            (r.acao || "").includes(q) ||
+            (r.modulo || "").includes(q) ||
+            (r.usuario_nome || "").toLowerCase().includes(q),
+        ),
+      );
+    });
+  },
+};

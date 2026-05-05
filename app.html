@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Sistema de gestão de clínica oftalmológica"
+    />
+    <meta name="theme-color" content="#2563eb" />
+    <title>Gestão Clínica</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='1.5'><path d='M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z'/><circle cx='12' cy='12' r='3'/></svg>"
+    />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body>
+    <!-- Loading inicial -->
+    <div
+      id="app-loading"
+      style="
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-primary);
+        z-index: 9999;
+        flex-direction: column;
+        gap: 1rem;
+      "
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="48"
+        height="48"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="var(--accent)"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+      <div
+        class="spinner"
+        style="width: 32px; height: 32px"
+        aria-label="Carregando sistema…"
+      ></div>
+    </div>
+
+    <!-- Shell da aplicação -->
+    <div id="app-shell" style="display: none">
+      <!-- Sidebar -->
+      <aside
+        class="sidebar"
+        id="sidebar"
+        role="navigation"
+        aria-label="Menu principal"
+      >
+        <div class="sidebar-logo" aria-label="Gestão Clínica">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span>oftalmo 15</span>
+        </div>
+        <nav
+          id="sidebar-nav"
+          class="sidebar-nav"
+          aria-label="Navegação dos módulos"
+        ></nav>
+        <div class="sidebar-user" id="sidebar-user"></div>
+      </aside>
+
+      <!-- Overlay mobile -->
+      <div
+        class="sidebar-overlay"
+        id="sidebar-overlay"
+        aria-hidden="true"
+      ></div>
+
+      <!-- Conteúdo principal -->
+      <div class="main-wrapper">
+        <header class="topbar" role="banner">
+          <button
+            class="hamburger"
+            id="btn-hamburger"
+            aria-label="Abrir menu"
+            aria-expanded="false"
+            aria-controls="sidebar"
+          >
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </button>
+          <span class="topbar-title" id="topbar-title">oftalmo 15</span>
+        </header>
+        <main
+          id="main-content"
+          role="main"
+          aria-live="polite"
+          tabindex="-1"
+        ></main>
+      </div>
+    </div>
+
+    <!-- Container de toasts -->
+    <div
+      id="toast-container"
+      class="toast-container"
+      aria-label="Notificações"
+      role="region"
+    ></div>
+
+    <!-- Container do Modal -->
+    <div
+      id="modal-overlay"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      style="display: none"
+    ></div>
+
+    <!-- ===== DEPENDÊNCIAS EXTERNAS ===== -->
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF + AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- ===== CONFIGURAÇÃO FIREBASE ===== -->
+    <script src="firebase-config.js"></script>
+
+    <!-- ===== CORE ===== -->
+    <script src="js/db.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/permissions.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/notifications.js"></script>
+
+    <!-- ===== COMPONENTES ===== -->
+    <script src="js/components/alerts.js"></script>
+    <script src="js/components/modal.js"></script>
+    <script src="js/components/navbar.js"></script>
+
+    <!-- ===== MÓDULOS ===== -->
+    <script src="modules/recepcao/recepcao.js"></script>
+    <script src="modules/callcenter/callcenter.js"></script>
+    <script src="modules/cirurgico/cirurgico.js"></script>
+    <script src="modules/honorarios/honorarios.js"></script>
+    <script src="modules/faturamento/faturamento.js"></script>
+    <script src="modules/patrimonio/patrimonio.js"></script>
+    <script src="modules/estoque/estoque.js"></script>
+    <script src="modules/fornecedores/fornecedores.js"></script>
+    <script src="modules/admin/admin.js"></script>
+
+    <!-- ===== BOOTSTRAP ===== -->
+    <script>
+      "use strict";
+      // Inicialização principal da aplicação
+      initAuth((user, userData) => {
+        if (!user) {
+          window.location.href = "index.html";
+          return;
+        }
+        // Esconder loading, mostrar app
+        document.getElementById("app-loading").style.display = "none";
+        document.getElementById("app-shell").style.display = "";
+
+        // Renderizar navbar
+        renderNavbar(
+          document.getElementById("sidebar-nav"),
+          document.getElementById("sidebar-user"),
+        );
+
+        // Inicializar roteamento
+        initRouter(document.getElementById("main-content"));
+
+        // Verificar vencimentos (com pequeno atraso para não sobrepor o carregamento)
+        setTimeout(() => {
+          verificarVencimentos();
+        }, 1500);
+      });
+
+      // Registrar Service Worker (PWA)
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/service-worker.js")
+            .catch((err) => console.warn("[SW] Registro falhou:", err));
+        });
+      }
+    </script>
+  </body>
+</html>

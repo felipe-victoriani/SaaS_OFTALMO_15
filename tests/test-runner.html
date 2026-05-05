@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Test Runner — Gestão Clínica v5.0</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: monospace;
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 2rem;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin-bottom: 1.5rem;
+        color: #60a5fa;
+      }
+      .suite {
+        margin-bottom: 1.5rem;
+        border: 1px solid #1e293b;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .suite-title {
+        background: #1e293b;
+        padding: 0.6rem 1rem;
+        font-weight: bold;
+        font-size: 0.9rem;
+      }
+      .test-case {
+        padding: 0.45rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.82rem;
+        border-top: 1px solid #0f172a;
+      }
+      .icon-pass {
+        color: #4ade80;
+      }
+      .icon-fail {
+        color: #f87171;
+      }
+      .error-msg {
+        color: #fca5a5;
+        font-size: 0.78rem;
+        margin-left: 1.4rem;
+        display: block;
+      }
+      #summary {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: #1e293b;
+        border-radius: 8px;
+      }
+      #summary .pass {
+        color: #4ade80;
+      }
+      #summary .fail {
+        color: #f87171;
+      }
+      #run-btn {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        padding: 0.6rem 1.4rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+        font-family: monospace;
+      }
+      #run-btn:hover {
+        background: #1d4ed8;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🧪 Test Runner — Gestão Clínica v5.0</h1>
+    <button id="run-btn" onclick="runAllTests()">
+      ▶ Executar Todos os Testes
+    </button>
+    <div id="results"></div>
+    <div id="summary"></div>
+
+    <!-- Módulos necessários (mocks não usam Firebase real) -->
+    <script
+      src="../firebase-config.js"
+      onerror="console.warn('firebase-config não carregado')"
+    ></script>
+    <script src="test-db.js"></script>
+    <script src="test-auth.js"></script>
+    <script src="test-permissions.js"></script>
+    <script src="test-honorarios.js"></script>
+    <script src="test-notifications.js"></script>
+
+    <script>
+      "use strict";
+      window._testSuites = window._testSuites || [];
+
+      function defineSuite(name, cases) {
+        window._testSuites.push({ name, cases });
+      }
+
+      async function runAllTests() {
+        const resultsEl = document.getElementById("results");
+        const summaryEl = document.getElementById("summary");
+        resultsEl.innerHTML = "";
+        summaryEl.innerHTML = "";
+
+        let totalPass = 0,
+          totalFail = 0;
+
+        for (const suite of window._testSuites) {
+          const suiteEl = document.createElement("div");
+          suiteEl.className = "suite";
+          suiteEl.innerHTML = `<div class="suite-title">📋 ${suite.name}</div>`;
+
+          for (const tc of suite.cases) {
+            const row = document.createElement("div");
+            row.className = "test-case";
+            try {
+              await tc.fn();
+              row.innerHTML = `<span class="icon-pass">✅</span> ${tc.name}`;
+              totalPass++;
+            } catch (err) {
+              row.innerHTML = `<span class="icon-fail">❌</span> ${tc.name}<span class="error-msg">${err.message || err}</span>`;
+              totalFail++;
+            }
+            suiteEl.appendChild(row);
+          }
+          resultsEl.appendChild(suiteEl);
+        }
+
+        summaryEl.innerHTML = `
+        <strong>Resultado:</strong>
+        <span class="pass">✅ ${totalPass} passou${totalPass !== 1 ? "ram" : ""}</span>
+        &nbsp;|&nbsp;
+        <span class="fail">❌ ${totalFail} falhou${totalFail !== 1 ? "ram" : ""}</span>
+        &nbsp;| Total: ${totalPass + totalFail}
+      `;
+      }
+
+      // Executar automaticamente ao carregar
+      window.addEventListener("DOMContentLoaded", () => {
+        setTimeout(runAllTests, 100);
+      });
+
+      // Helpers de assertion expostos globalmente
+      window.assert = {
+        equal(a, b, msg) {
+          if (a !== b)
+            throw new Error(
+              msg ||
+                `Esperado ${JSON.stringify(b)}, recebido ${JSON.stringify(a)}`,
+            );
+        },
+        ok(val, msg) {
+          if (!val)
+            throw new Error(
+              msg || `Esperado truthy, recebido ${JSON.stringify(val)}`,
+            );
+        },
+        throws(fn, msg) {
+          try {
+            fn();
+            throw new Error("Deveria ter lançado exceção");
+          } catch (e) {
+            if (e.message === "Deveria ter lançado exceção")
+              throw new Error(msg || e.message);
+          }
+        },
+        deepEqual(a, b, msg) {
+          if (JSON.stringify(a) !== JSON.stringify(b))
+            throw new Error(
+              msg ||
+                `Objetos diferentes:\n${JSON.stringify(a)}\n!=\n${JSON.stringify(b)}`,
+            );
+        },
+      };
+    </script>
+  </body>
+</html>

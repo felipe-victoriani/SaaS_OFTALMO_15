@@ -1,0 +1,103 @@
+<div class="page-content">
+  <div class="module-header">
+    <h1 class="module-title">
+      <i data-lucide="banknote" width="24" height="24" aria-hidden="true"></i>
+      Divisão de Honorários
+    </h1>
+    <p class="module-subtitle">
+      Lançamento e acompanhamento dos honorários médicos (somente admin)
+    </p>
+  </div>
+
+  <!-- Filtro mês/ano -->
+  <div
+    style="
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    "
+  >
+    <label class="form-label" style="margin: 0">Mês/Ano:</label>
+    <input type="month" id="hon-mes" class="filter-input" style="width: auto" />
+  </div>
+
+  <!-- Tabela de honorários pendentes -->
+  <div class="table-container mb-3" id="secao-pendentes">
+    <div class="table-toolbar">
+      <span class="table-toolbar-title">Honorários Pendentes</span>
+      <span id="count-pendentes" class="badge badge-warning">—</span>
+    </div>
+    <div class="table-scroll">
+      <table
+        class="data-table"
+        id="tabela-pendentes"
+        aria-label="Cirurgias com honorários pendentes"
+      >
+        <thead>
+          <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Paciente</th>
+            <th scope="col">Cirurgião</th>
+            <th scope="col">Auxiliar</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">LIO</th>
+            <th scope="col">Ação</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-pendentes">
+          <tr>
+            <td colspan="7">
+              <div class="loading-wrapper">
+                <div class="spinner"></div>
+                Carregando...
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tabela de honorários lançados -->
+  <div class="table-container">
+    <div class="table-toolbar">
+      <span class="table-toolbar-title">Honorários Lançados</span>
+      <div class="table-actions" id="acoes-tabela-hon"></div>
+    </div>
+    <div class="table-scroll table-mobile-cards">
+      <table
+        class="data-table"
+        id="tabela-honorarios"
+        aria-label="Honorários lançados"
+      >
+        <thead>
+          <tr>
+            <th scope="col">Paciente</th>
+            <th scope="col">Cirurgião</th>
+            <th scope="col">Auxiliar</th>
+            <th scope="col">Hon. Cirurgião PF</th>
+            <th scope="col">LIO Cirurgião</th>
+            <th scope="col">LIO Clínica</th>
+            <th scope="col">Hon. Auxiliar PF</th>
+            <th scope="col">Hon. Instrument.</th>
+            <th scope="col">Clínica CNPJ</th>
+            <th scope="col">Total</th>
+            <th scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-honorarios">
+          <tr>
+            <td colspan="11">
+              <div class="loading-wrapper">
+                <div class="spinner"></div>
+                Carregando...
+              </div>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot id="tfoot-honorarios"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>

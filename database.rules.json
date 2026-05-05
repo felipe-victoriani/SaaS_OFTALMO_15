@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "usuarios": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "dados": {
+      "$data": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "metas": { ".read": "auth != null", ".write": "auth != null" },
+    "patrimonio": { ".read": "auth != null", ".write": "auth != null" },
+    "estoque": { ".read": "auth != null", ".write": "auth != null" },
+    "movimentacoes_estoque": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "fornecedores": { ".read": "auth != null", ".write": "auth != null" },
+    "auditoria": { ".read": "auth != null", ".write": "auth != null" }
+  }
+}

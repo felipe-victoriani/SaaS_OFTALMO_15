@@ -1,0 +1,177 @@
+<div class="page-content">
+  <div class="module-header">
+    <h1 class="module-title">
+      <i data-lucide="boxes" width="24" height="24" aria-hidden="true"></i>
+      Estoque
+    </h1>
+    <p class="module-subtitle">
+      Controle de materiais e insumos oftalmológicos
+    </p>
+  </div>
+
+  <!-- Formulário de cadastro -->
+  <div class="card mb-3">
+    <div class="card-header">
+      <span class="card-title" id="est-form-titulo">Novo Item</span>
+    </div>
+    <form id="form-estoque" novalidate>
+      <input type="hidden" id="est-id" />
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label required" for="est-nome">Nome do Item</label>
+          <input
+            type="text"
+            id="est-nome"
+            class="form-input"
+            required
+            maxlength="120"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="est-categoria"
+            >Categoria</label
+          >
+          <select id="est-categoria" class="form-select" required>
+            <option value="">Selecione...</option>
+            <option value="Colírios">Colírios</option>
+            <option value="Materiais Cirúrgicos Oftálmicos">
+              Materiais Cirúrgicos Oftálmicos
+            </option>
+            <option value="LIO (Lente Intraocular)">
+              LIO (Lente Intraocular)
+            </option>
+            <option value="Materiais de Consumo">Materiais de Consumo</option>
+            <option value="Medicamentos">Medicamentos</option>
+            <option value="Instrumentais">Instrumentais</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="est-unidade">Unidade</label>
+          <input
+            type="text"
+            id="est-unidade"
+            class="form-input"
+            maxlength="20"
+            placeholder="un, cx, fr..."
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="est-qtd"
+            >Quantidade Atual</label
+          >
+          <input
+            type="number"
+            id="est-qtd"
+            class="form-input"
+            min="0"
+            required
+            value="0"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="est-minimo"
+            >Estoque Mínimo</label
+          >
+          <input
+            type="number"
+            id="est-minimo"
+            class="form-input"
+            min="0"
+            required
+            value="0"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="est-obs">Observações</label>
+          <input type="text" id="est-obs" class="form-input" maxlength="200" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          id="est-btn-cancelar"
+          style="display: none"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="save" width="16" height="16" aria-hidden="true"></i>
+          Salvar Item
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filter-bar mb-2">
+    <input
+      type="text"
+      id="est-busca"
+      class="filter-input"
+      placeholder="Buscar por nome..."
+      aria-label="Buscar no estoque"
+    />
+    <select
+      id="est-filtro-cat"
+      class="filter-input"
+      aria-label="Filtrar por categoria"
+    >
+      <option value="">Todas as categorias</option>
+      <option value="Colírios">Colírios</option>
+      <option value="Materiais Cirúrgicos Oftálmicos">
+        Materiais Cirúrgicos Oftálmicos
+      </option>
+      <option value="LIO (Lente Intraocular)">LIO (Lente Intraocular)</option>
+      <option value="Materiais de Consumo">Materiais de Consumo</option>
+      <option value="Medicamentos">Medicamentos</option>
+      <option value="Instrumentais">Instrumentais</option>
+      <option value="Outros">Outros</option>
+    </select>
+    <select
+      id="est-filtro-status"
+      class="filter-input"
+      aria-label="Filtrar por status"
+    >
+      <option value="">Todos</option>
+      <option value="critico">Crítico (zerado)</option>
+      <option value="baixo">Baixo (abaixo do mínimo)</option>
+      <option value="ok">OK</option>
+    </select>
+  </div>
+
+  <!-- Tabela -->
+  <div class="table-container">
+    <div class="table-toolbar">
+      <span class="table-toolbar-title">Itens em Estoque</span>
+      <div class="table-actions" id="est-acoes-tabela"></div>
+    </div>
+    <div class="table-scroll table-mobile-cards">
+      <table class="data-table" id="tabela-estoque" aria-label="Estoque">
+        <thead>
+          <tr>
+            <th scope="col">Item</th>
+            <th scope="col">Categoria</th>
+            <th scope="col">Qtd</th>
+            <th scope="col">Mínimo</th>
+            <th scope="col">Unidade</th>
+            <th scope="col">Status</th>
+            <th scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-estoque">
+          <tr>
+            <td colspan="7">
+              <div class="loading-wrapper">
+                <div class="spinner"></div>
+                Carregando...
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="est-paginacao" class="pagination-bar"></div>
+  </div>
+</div>

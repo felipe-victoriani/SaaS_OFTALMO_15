@@ -1,0 +1,260 @@
+// ================================================================
+// modules/cirurgico/cirurgico.js — Módulo Cirúrgico
+// ================================================================
+
+window.Modules = window.Modules || {};
+
+window.Modules.cirurgico = {
+  _cancelarEscuta: null,
+  _registros: {},
+  _dataSelecionada: hoje(),
+
+  mount(container) {
+    if (!exigirPermissao("cirurgico", container)) return;
+
+    const inputData = container.querySelector("#data-cirurgico");
+    if (inputData) inputData.value = this._dataSelecionada;
+
+    lucide.createIcons({ nodes: [container] });
+    this._bindEventos(container);
+    this._iniciarEscuta();
+
+    const acoes = container.querySelector("#acoes-tabela-cir");
+    if (acoes) {
+      acoes.appendChild(
+        criarBotaoExportar(
+          "tabela-cirurgico",
+          "Cirurgias Registradas",
+          "cirurgico",
+        ),
+      );
+    }
+  },
+
+  _iniciarEscuta() {
+    if (this._cancelarEscuta) this._cancelarEscuta();
+    const caminho = caminhoData("cirurgias", this._dataSelecionada);
+    this._cancelarEscuta = escutar(caminho, (dados) => {
+      this._registros = dados || {};
+      this._renderTabela(this._registros);
+    });
+    registrarListener(this._cancelarEscuta);
+  },
+
+  _renderTabela(registros) {
+    const tbody = document.getElementById("tbody-cirurgico");
+    if (!tbody) return;
+    const lista = Object.entries(registros);
+    if (lista.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="11">
+        <div class="table-empty">
+          <i data-lucide="scissors" width="40" height="40" aria-hidden="true"></i>
+          <p>Nenhuma cirurgia registrada nesta data.</p>
+        </div></td></tr>`;
+      lucide.createIcons({ nodes: [tbody] });
+      return;
+    }
+    tbody.innerHTML = lista
+      .map(
+        ([id, r], idx) => `
+      <tr>
+        <td data-label="#">${idx + 1}</td>
+        <td data-label="Paciente">${r.paciente || "—"}</td>
+        <td data-label="Cirurgião">${r.medico_cirurgiao || "—"}</td>
+        <td data-label="Auxiliar">${r.medico_auxiliar || "Nenhum"}</td>
+        <td data-label="Tipo">${r.tipo_cirurgia || "—"}</td>
+        <td data-label="Olho">${r.olho_operado || "—"}</td>
+        <td data-label="LIO"><span class="badge ${r.lio_implantada ? "badge-info" : "badge-neutral"}">${r.lio_implantada ? r.tipo_lio || "Sim" : "Não"}</span></td>
+        <td data-label="Valor LIO" class="table-number">${r.lio_implantada ? formatarMoeda(r.valor_lio) : "—"}</td>
+        <td data-label="Valor Total" class="table-number">${formatarMoeda(r.valor_total)}</td>
+        <td data-label="Honorários"><span class="badge ${r.honorarios_lancados ? "badge-success" : "badge-warning"}">${r.honorarios_lancados ? "Lançado" : "Pendente"}</span></td>
+        <td data-label="Ações">
+          <div style="display:flex;gap:.25rem">
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="Modules.cirurgico._editarRegistro('${id}')" aria-label="Editar">
+              <i data-lucide="pencil" width="14" height="14" aria-hidden="true"></i>
+            </button>
+            <button class="btn btn-ghost btn-icon btn-sm text-danger" onclick="Modules.cirurgico._excluirRegistro('${id}','${(r.paciente || "").replace(/'/g, "\\'")}') " aria-label="Excluir">
+              <i data-lucide="trash-2" width="14" height="14" aria-hidden="true"></i>
+            </button>
+          </div>
+        </td>
+      </tr>`,
+      )
+      .join("");
+    lucide.createIcons({ nodes: [tbody] });
+  },
+
+  _bindEventos(container) {
+    container
+      .querySelector("#data-cirurgico")
+      ?.addEventListener("change", (e) => {
+        this._dataSelecionada = e.target.value;
+        this._iniciarEscuta();
+      });
+    container.querySelector("#cir-lio")?.addEventListener("change", (e) => {
+      const grupo = document.getElementById("grupo-lio");
+      if (grupo) grupo.style.display = e.target.checked ? "" : "none";
+    });
+    container
+      .querySelector("#form-cirurgico")
+      ?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await this._salvarRegistro();
+      });
+  },
+
+  async _salvarRegistro() {
+    const paciente = document.getElementById("cir-paciente")?.value.trim();
+    const cirurgiao = document.getElementById("cir-cirurgiao")?.value;
+    const auxiliar = document.getElementById("cir-auxiliar")?.value || "";
+    const instrumentador =
+      document.getElementById("cir-instrumentador")?.value.trim() || "";
+    const tipo = document.getElementById("cir-tipo")?.value;
+    const olho = document.getElementById("cir-olho")?.value;
+    const lio = document.getElementById("cir-lio")?.checked;
+    const tipoLio = document.getElementById("cir-tipo-lio")?.value || "";
+    const modeloLio =
+      document.getElementById("cir-modelo-lio")?.value.trim() || "";
+    const valorLio = lio
+      ? parseFloat(document.getElementById("cir-valor-lio")?.value || 0)
+      : 0;
+    const valorTotal = parseFloat(
+      document.getElementById("cir-valor-total")?.value || 0,
+    );
+    const editId = document.getElementById("cir-edit-id")?.value;
+
+    if (!paciente || !cirurgiao || !tipo || !olho) {
+      Alerts.aviso("Preencha todos os campos obrigatórios.");
+      return;
+    }
+    if (lio && valorLio <= 0) {
+      Alerts.aviso("Informe o valor da LIO.");
+      return;
+    }
+
+    const btn = document.getElementById("btn-salvar-cir");
+    const txt = document.getElementById("btn-cir-txt");
+    if (btn) btn.disabled = true;
+    if (txt) txt.textContent = "Salvando...";
+
+    try {
+      const dados = {
+        paciente,
+        medico_cirurgiao: cirurgiao,
+        medico_auxiliar: auxiliar,
+        instrumentador,
+        tipo_cirurgia: tipo,
+        olho_operado: olho,
+        lio_implantada: lio,
+        tipo_lio: tipoLio,
+        modelo_lio: modeloLio,
+        valor_lio: valorLio,
+        valor_total: valorTotal,
+        honorarios_lancados: false,
+      };
+      const caminho = caminhoData("cirurgias", this._dataSelecionada);
+
+      if (editId) {
+        await atualizar(`${caminho}/${editId}`, dados);
+        await registrarAuditoria(
+          "editar",
+          "cirurgico",
+          editId,
+          this._registros[editId],
+        );
+        Alerts.sucesso("Cirurgia atualizada!");
+        document.getElementById("cir-edit-id").value = "";
+        if (txt) txt.textContent = "Registrar Cirurgia";
+      } else {
+        const id = await criar(caminho, dados);
+        await registrarAuditoria("criar", "cirurgico", id, null);
+        await this._criarRascunhoHonorarios(id, { ...dados, _id: id });
+        Alerts.sucesso("Cirurgia registrada! Rascunho criado em Honorários.");
+      }
+      document.getElementById("form-cirurgico")?.reset();
+      document.getElementById("grupo-lio").style.display = "none";
+    } catch (err) {
+      console.error("[cirurgico] salvar:", err);
+      Alerts.erro("Erro ao salvar cirurgia.");
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  },
+
+  async _criarRascunhoHonorarios(cirurgiaId, cir) {
+    const rascunho = {
+      cirurgia_id: cirurgiaId,
+      data_cirurgia: this._dataSelecionada,
+      paciente: cir.paciente,
+      nome_cirurgiao: cir.medico_cirurgiao,
+      nome_auxiliar: cir.medico_auxiliar || "",
+      nome_instrumentador: cir.instrumentador || "",
+      tipo_cirurgia: cir.tipo_cirurgia,
+      olho_operado: cir.olho_operado,
+      valor_lio_total: cir.valor_lio || 0,
+      lio_parte_cirurgiao: cir.valor_lio || 0,
+      lio_parte_clinica: 0,
+      honorario_cirurgiao_pf: 0,
+      honorario_auxiliar_pf: 0,
+      honorario_instrumentador_pf: 0,
+      valor_clinica_cnpj: 0,
+      valor_total: 0,
+      lancado: false,
+      registrado_por: window.AppState.uid,
+      criado_em: agora(),
+    };
+    const id = await criar(
+      caminhoData("honorarios", this._dataSelecionada),
+      rascunho,
+    );
+    await registrarAuditoria("criar_rascunho", "honorarios", id, null);
+  },
+
+  _editarRegistro(id) {
+    const r = this._registros[id];
+    if (!r) return;
+    document.getElementById("cir-paciente").value = r.paciente || "";
+    document.getElementById("cir-cirurgiao").value = r.medico_cirurgiao || "";
+    document.getElementById("cir-auxiliar").value = r.medico_auxiliar || "";
+    document.getElementById("cir-instrumentador").value =
+      r.instrumentador || "";
+    document.getElementById("cir-tipo").value = r.tipo_cirurgia || "";
+    document.getElementById("cir-olho").value = r.olho_operado || "";
+    document.getElementById("cir-lio").checked = r.lio_implantada || false;
+    document.getElementById("grupo-lio").style.display = r.lio_implantada
+      ? ""
+      : "none";
+    if (r.lio_implantada) {
+      document.getElementById("cir-tipo-lio").value = r.tipo_lio || "";
+      document.getElementById("cir-modelo-lio").value = r.modelo_lio || "";
+      document.getElementById("cir-valor-lio").value = r.valor_lio || 0;
+    }
+    document.getElementById("cir-valor-total").value = r.valor_total || 0;
+    document.getElementById("cir-edit-id").value = id;
+    document.getElementById("btn-cir-txt").textContent = "Atualizar Cirurgia";
+    document.getElementById("cir-paciente")?.focus();
+  },
+
+  _excluirRegistro(id, nome) {
+    Modal.confirmar(
+      `Excluir cirurgia de <strong>${nome}</strong>?`,
+      async () => {
+        try {
+          await remover(
+            `${caminhoData("cirurgias", this._dataSelecionada)}/${id}`,
+          );
+          await registrarAuditoria(
+            "excluir",
+            "cirurgico",
+            id,
+            this._registros[id],
+          );
+          Alerts.sucesso("Cirurgia excluída.");
+        } catch {
+          Alerts.erro("Erro ao excluir.");
+        }
+      },
+      "Excluir Cirurgia",
+    );
+  },
+};

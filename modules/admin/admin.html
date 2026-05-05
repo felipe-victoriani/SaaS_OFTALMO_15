@@ -1,0 +1,50 @@
+<div class="page-content">
+  <div class="module-header">
+    <h1 class="module-title">
+      <i data-lucide="shield" width="24" height="24" aria-hidden="true"></i>
+      Administração
+    </h1>
+    <p class="module-subtitle">
+      Gestão de usuários, metas, relatórios e auditoria
+    </p>
+  </div>
+
+  <!-- Cards de resumo -->
+  <div class="cards-grid mb-3" id="admin-cards-resumo">
+    <div class="card">
+      <div class="loading-wrapper"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Abas -->
+  <div class="tabs-bar" role="tablist" aria-label="Módulos de administração">
+    <button
+      class="tab-btn active"
+      role="tab"
+      aria-selected="true"
+      data-tab="usuarios"
+    >
+      Usuários
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="metas">
+      Metas
+    </button>
+    <button
+      class="tab-btn"
+      role="tab"
+      aria-selected="false"
+      data-tab="relatorios"
+    >
+      Relatórios
+    </button>
+    <button
+      class="tab-btn"
+      role="tab"
+      aria-selected="false"
+      data-tab="auditoria"
+    >
+      Auditoria
+    </button>
+  </div>
+  <div id="admin-tab-content" class="tab-content-area"></div>
+</div>

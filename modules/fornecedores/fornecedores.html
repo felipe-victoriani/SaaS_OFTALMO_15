@@ -1,0 +1,179 @@
+<div class="page-content">
+  <div class="module-header">
+    <h1 class="module-title">
+      <i data-lucide="truck" width="24" height="24" aria-hidden="true"></i>
+      Fornecedores
+    </h1>
+    <p class="module-subtitle">
+      Cadastro de fornecedores e parceiros comerciais
+    </p>
+  </div>
+
+  <!-- Formulário -->
+  <div class="card mb-3">
+    <div class="card-header">
+      <span class="card-title" id="forn-form-titulo">Novo Fornecedor</span>
+    </div>
+    <form id="form-fornecedores" novalidate>
+      <input type="hidden" id="forn-id" />
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label required" for="forn-nome"
+            >Razão Social / Nome</label
+          >
+          <input
+            type="text"
+            id="forn-nome"
+            class="form-input"
+            required
+            maxlength="150"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="forn-cnpj">CNPJ</label>
+          <input
+            type="text"
+            id="forn-cnpj"
+            class="form-input"
+            maxlength="18"
+            placeholder="00.000.000/0000-00"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="forn-categoria"
+            >Categoria</label
+          >
+          <select id="forn-categoria" class="form-select" required>
+            <option value="">Selecione...</option>
+            <option value="Equipamentos Oftalmológicos">
+              Equipamentos Oftalmológicos
+            </option>
+            <option value="Materiais Cirúrgicos">Materiais Cirúrgicos</option>
+            <option value="LIO e Implantes">LIO e Implantes</option>
+            <option value="Farmacêutico">Farmacêutico</option>
+            <option value="Tecnologia">Tecnologia</option>
+            <option value="Serviços Gerais">Serviços Gerais</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="forn-contato"
+            >Contato / Representante</label
+          >
+          <input
+            type="text"
+            id="forn-contato"
+            class="form-input"
+            maxlength="100"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="forn-telefone">Telefone</label>
+          <input
+            type="tel"
+            id="forn-telefone"
+            class="form-input"
+            maxlength="20"
+            placeholder="(00) 00000-0000"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="forn-email">E-mail</label>
+          <input
+            type="email"
+            id="forn-email"
+            class="form-input"
+            maxlength="150"
+          />
+        </div>
+        <div class="form-group" style="grid-column: 1/-1">
+          <label class="form-label" for="forn-obs">Observações</label>
+          <textarea
+            id="forn-obs"
+            class="form-input form-textarea"
+            rows="2"
+            maxlength="400"
+          ></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          id="forn-btn-cancelar"
+          style="display: none"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="save" width="16" height="16" aria-hidden="true"></i>
+          Salvar
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Busca -->
+  <div class="filter-bar mb-2">
+    <input
+      type="text"
+      id="forn-busca"
+      class="filter-input"
+      placeholder="Buscar por nome, CNPJ ou categoria…"
+      aria-label="Buscar fornecedores"
+    />
+    <select
+      id="forn-filtro-cat"
+      class="filter-input"
+      aria-label="Filtrar por categoria"
+    >
+      <option value="">Todas as categorias</option>
+      <option value="Equipamentos Oftalmológicos">
+        Equipamentos Oftalmológicos
+      </option>
+      <option value="Materiais Cirúrgicos">Materiais Cirúrgicos</option>
+      <option value="LIO e Implantes">LIO e Implantes</option>
+      <option value="Farmacêutico">Farmacêutico</option>
+      <option value="Tecnologia">Tecnologia</option>
+      <option value="Serviços Gerais">Serviços Gerais</option>
+      <option value="Outros">Outros</option>
+    </select>
+  </div>
+
+  <!-- Tabela -->
+  <div class="table-container">
+    <div class="table-toolbar">
+      <span class="table-toolbar-title">Fornecedores Cadastrados</span>
+      <div class="table-actions" id="forn-acoes-tabela"></div>
+    </div>
+    <div class="table-scroll table-mobile-cards">
+      <table
+        class="data-table"
+        id="tabela-fornecedores"
+        aria-label="Fornecedores"
+      >
+        <thead>
+          <tr>
+            <th scope="col">Nome</th>
+            <th scope="col">CNPJ</th>
+            <th scope="col">Categoria</th>
+            <th scope="col">Contato</th>
+            <th scope="col">Telefone</th>
+            <th scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-fornecedores">
+          <tr>
+            <td colspan="6">
+              <div class="loading-wrapper">
+                <div class="spinner"></div>
+                Carregando...
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="forn-paginacao" class="pagination-bar"></div>
+  </div>
+</div>

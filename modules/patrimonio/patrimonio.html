@@ -1,0 +1,181 @@
+<div class="page-content">
+  <div class="module-header">
+    <h1 class="module-title">
+      <i data-lucide="package" width="24" height="24" aria-hidden="true"></i>
+      Patrimônio
+    </h1>
+    <p class="module-subtitle">
+      Controle de equipamentos, contratos e vencimentos
+    </p>
+  </div>
+
+  <!-- Formulário -->
+  <div class="card mb-3">
+    <div class="card-header">
+      <span class="card-title" id="pat-form-titulo">Novo Item</span>
+    </div>
+    <form id="form-patrimonio" novalidate>
+      <input type="hidden" id="pat-id" />
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label required" for="pat-nome"
+            >Descrição do Item</label
+          >
+          <input
+            type="text"
+            id="pat-nome"
+            class="form-input"
+            required
+            maxlength="120"
+            placeholder="Ex: Microscópio Zeiss"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="pat-categoria"
+            >Categoria</label
+          >
+          <select id="pat-categoria" class="form-select" required>
+            <option value="">Selecione...</option>
+            <option value="Equipamentos de Segurança">
+              Equipamentos de Segurança
+            </option>
+            <option value="Equipamentos Oftalmológicos">
+              Equipamentos Oftalmológicos
+            </option>
+            <option value="Contratos">Contratos</option>
+            <option value="Licenças de Software">Licenças de Software</option>
+            <option value="Seguros">Seguros</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="pat-fornecedor">Fornecedor</label>
+          <input
+            type="text"
+            id="pat-fornecedor"
+            class="form-input"
+            maxlength="100"
+            placeholder="Nome do fornecedor"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="pat-vencimento"
+            >Data de Vencimento</label
+          >
+          <input type="date" id="pat-vencimento" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="pat-valor">Valor (R$)</label>
+          <input
+            type="number"
+            id="pat-valor"
+            class="form-input"
+            min="0"
+            step="0.01"
+            placeholder="0,00"
+          />
+        </div>
+        <div class="form-group" style="grid-column: 1/-1">
+          <label class="form-label" for="pat-obs">Observações</label>
+          <textarea
+            id="pat-obs"
+            class="form-input form-textarea"
+            rows="2"
+            maxlength="400"
+            placeholder="Informações adicionais..."
+          ></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          id="pat-btn-cancelar"
+          style="display: none"
+        >
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="save" width="16" height="16" aria-hidden="true"></i>
+          Salvar Item
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filter-bar mb-2">
+    <input
+      type="text"
+      id="pat-busca"
+      class="filter-input"
+      placeholder="Buscar por descrição ou fornecedor…"
+      aria-label="Buscar patrimônio"
+    />
+    <select
+      id="pat-filtro-cat"
+      class="filter-input"
+      aria-label="Filtrar por categoria"
+    >
+      <option value="">Todas as categorias</option>
+      <option value="Equipamentos de Segurança">
+        Equipamentos de Segurança
+      </option>
+      <option value="Equipamentos Oftalmológicos">
+        Equipamentos Oftalmológicos
+      </option>
+      <option value="Contratos">Contratos</option>
+      <option value="Licenças de Software">Licenças de Software</option>
+      <option value="Seguros">Seguros</option>
+      <option value="Outros">Outros</option>
+    </select>
+    <select
+      id="pat-filtro-status"
+      class="filter-input"
+      aria-label="Filtrar por status"
+    >
+      <option value="">Todos os status</option>
+      <option value="vencido">Vencido</option>
+      <option value="breve">Vence em breve</option>
+      <option value="regular">Regular</option>
+    </select>
+  </div>
+
+  <!-- Tabela -->
+  <div class="table-container">
+    <div class="table-toolbar">
+      <span class="table-toolbar-title">Itens Cadastrados</span>
+      <div class="table-actions" id="pat-acoes-tabela"></div>
+    </div>
+    <div class="table-scroll table-mobile-cards">
+      <table
+        class="data-table"
+        id="tabela-patrimonio"
+        aria-label="Itens de patrimônio"
+      >
+        <thead>
+          <tr>
+            <th scope="col">Descrição</th>
+            <th scope="col">Categoria</th>
+            <th scope="col">Fornecedor</th>
+            <th scope="col">Vencimento</th>
+            <th scope="col">Valor</th>
+            <th scope="col">Status</th>
+            <th scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-patrimonio">
+          <tr>
+            <td colspan="7">
+              <div class="loading-wrapper">
+                <div class="spinner"></div>
+                Carregando...
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="pat-paginacao" class="pagination-bar"></div>
+  </div>
+</div>
