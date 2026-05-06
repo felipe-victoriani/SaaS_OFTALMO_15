@@ -340,14 +340,6 @@ window.Modules.faturamento = {
       else origens["Base"] += parseFloat(r.valor) || 0;
     });
 
-    // Agrupar por data (evolução diária)
-    const porData = {};
-    recepcaoArr.forEach((r) => {
-      const d = r._data || hoje();
-      porData[d] = (porData[d] || 0) + (parseFloat(r.valor) || 0);
-    });
-    const datasOrdenadas = Object.keys(porData).sort();
-
     // Gráfico 1 — por médico (barras)
     const ctxMedico = document.getElementById("chart-recepcao-medico");
     if (ctxMedico) {
@@ -416,38 +408,6 @@ window.Modules.faturamento = {
         },
       });
       this._charts.push(c2);
-    }
-
-    // Gráfico 3 — evolução diária (linha)
-    const ctxDiario = document.getElementById("chart-recepcao-diario");
-    if (ctxDiario) {
-      const c3 = new Chart(ctxDiario, {
-        type: "line",
-        data: {
-          labels: datasOrdenadas.map((d) => formatarData(d)),
-          datasets: [
-            {
-              label: "Receita do dia",
-              data: datasOrdenadas.map((d) => porData[d]),
-              borderColor: "#2563eb",
-              backgroundColor: "rgba(37,99,235,0.08)",
-              fill: true,
-              tension: 0.4,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { callback: (v) => "R$" + (v / 1000).toFixed(0) + "k" },
-            },
-          },
-        },
-      });
-      this._charts.push(c3);
     }
   },
 

@@ -404,9 +404,14 @@ window.Modules.admin = {
                     <td>${m.nome}</td>
                     <td class="table-number">${formatarMoeda(m.valor || 0)}</td>
                     <td>
-                      <button class="btn btn-ghost btn-icon btn-sm btn-danger" onclick="Modules.admin._removerMeta('${m._id}', '${(m.nome || "").replace(/'/g, "\\'")}')" aria-label="Remover meta">
-                        <i data-lucide="trash-2" width="14" height="14" aria-hidden="true"></i>
-                      </button>
+                      <div class="btn-group">
+                        <button class="btn btn-ghost btn-icon btn-sm" onclick="Modules.admin._editarMeta('${m._id}', '${(m.nome || "").replace(/'/g, "\\'").replace(/"/g, "&quot;")}', ${m.valor || 0})" aria-label="Editar meta">
+                          <i data-lucide="pencil" width="14" height="14" aria-hidden="true"></i>
+                        </button>
+                        <button class="btn btn-ghost btn-icon btn-sm btn-danger" onclick="Modules.admin._removerMeta('${m._id}', '${(m.nome || "").replace(/'/g, "\\'")}')" aria-label="Remover meta">
+                          <i data-lucide="trash-2" width="14" height="14" aria-hidden="true"></i>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 `,
@@ -439,6 +444,77 @@ window.Modules.admin = {
           Alerts.erro("Erro ao salvar meta.");
         }
       });
+  },
+
+  _editarMeta(id, nome, valor) {
+    Modal.abrirModal({
+      titulo: "Editar Meta",
+      icone: "pencil",
+      tamanho: "sm",
+      corpo: `
+        <div class="form-group">
+          <label class="form-label required" for="edit-meta-nome">Médico</label>
+          <select id="edit-meta-nome" class="form-select" required>
+            <option value="">Selecione...</option>
+            <option ${nome === "Dra. Mariza" ? "selected" : ""}>Dra. Mariza</option>
+            <option ${nome === "Dra. Fabiana" ? "selected" : ""}>Dra. Fabiana</option>
+            <option ${nome === "Dra. Mariana" ? "selected" : ""}>Dra. Mariana</option>
+            <option ${nome === "Dr. Dante" ? "selected" : ""}>Dr. Dante</option>
+            <option ${nome === "Dr. Alberto" ? "selected" : ""}>Dr. Alberto</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label required" for="edit-meta-valor">Meta Mensal (R$)</label>
+          <input type="text" inputmode="numeric" id="edit-meta-valor" class="form-input"
+            oninput="formatarMoedaInput(this)"
+            placeholder="R$ 0,00"
+            data-valor="${valor}"
+            value="${formatarMoeda(valor)}"
+            required>
+        </div>
+      `,
+      botoes: [
+        {
+          id: "edit-meta-cancelar",
+          label: "Cancelar",
+          classe: "btn-secondary",
+          onClick: () => Modal.fecharModal(),
+        },
+        {
+          id: "edit-meta-salvar",
+          label: "Salvar",
+          classe: "btn-primary",
+          icone: "save",
+          onClick: async () => {
+            const novoNome = document
+              .getElementById("edit-meta-nome")
+              ?.value.trim();
+            const novoValor = getValorNumerico(
+              document.getElementById("edit-meta-valor"),
+            );
+            if (!novoNome || novoValor <= 0) {
+              Alerts.aviso("Preencha nome e valor.");
+              return;
+            }
+            try {
+              await atualizar(`${CAMINHOS.metas()}/${id}`, {
+                nome: novoNome,
+                valor: novoValor,
+              });
+              await registrarAuditoria("editar", "metas", id, {
+                nome: novoNome,
+                valor: novoValor,
+              });
+              Modal.fecharModal();
+              Alerts.sucesso("Meta atualizada!");
+              this._renderAba("metas");
+            } catch (err) {
+              Alerts.erro("Erro ao atualizar meta.");
+            }
+          },
+        },
+      ],
+    });
   },
 
   // ALTERAÇÃO 2: somente exclusão — confirmação com nome do médico e instrução de recriação
