@@ -310,3 +310,8 @@ body::after {
 .login-footer a:hover {
   text-decoration: underline;
 }
+.login-dev {
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.25);
+}

@@ -8,6 +8,8 @@ window.Modules.callcenter = {
   _cancelarEscuta: null,
   _registros: {},
   _dataSelecionada: hoje(),
+  _filtroMedico: "todos", // ALTERAÇÃO 2: filtro de médico na tabela
+  _usuariosMap: {}, // ALTERAÇÃO: cache do mapa de usuários
 
   mount(container) {
     if (!exigirPermissao("callcenter", container)) return;
@@ -58,7 +60,7 @@ window.Modules.callcenter = {
     if (!tbody) return;
     const lista = Object.entries(registros);
     if (lista.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9">
+      tbody.innerHTML = `<tr><td colspan="10">
         <div class="table-empty">
           <i data-lucide="phone-off" width="40" height="40" aria-hidden="true"></i>
           <p>Nenhuma ativação registrada nesta data.</p>
@@ -72,11 +74,12 @@ window.Modules.callcenter = {
       <tr>
         <td data-label="#">${idx + 1}</td>
         <td data-label="Paciente">${r.paciente || "—"}</td>
+        <td data-label="Médico">${r.medico || "—"}</td>
         <td data-label="Telefone">${r.telefone || "—"}</td>
         <td data-label="Último Atend.">${r.ultimo_atendimento ? formatarData(r.ultimo_atendimento) : "—"}</td>
         <td data-label="Atendeu"><span class="badge ${r.atendeu ? "badge-success" : "badge-neutral"}">${r.atendeu ? "Sim" : "Não"}</span></td>
-        <td data-label="Reagendou"><span class="badge ${r.reagendou ? "badge-success" : "badge-neutral"}">${r.reagendou ? "Sim" : "Não"}</span></td>
-        <td data-label="Data Reag.">${r.data_reagendamento ? formatarData(r.data_reagendamento) : "—"}</td>
+        <td data-label="Agendou"><span class="badge ${r.reagendou ? "badge-success" : "badge-neutral"}">${r.reagendou ? "Sim" : "Não"}</span></td>
+        <td data-label="Data Agend.">${r.data_reagendamento ? formatarData(r.data_reagendamento) : "—"}</td>
         ${isAdmin() ? `<td data-label="Atendente">${usuariosMap[r.registrado_por] || "—"}</td>` : ""}
         <td data-label="Ações">
           <div style="display:flex;gap:.25rem">
@@ -127,6 +130,14 @@ window.Modules.callcenter = {
         this._iniciarEscuta();
       });
 
+    // ALTERAÇÃO 2: filtro de médico na tabela (somente admin)
+    container
+      .querySelector("#filtro-medico-cc")
+      ?.addEventListener("change", (e) => {
+        this._filtroMedico = e.target.value;
+        this._renderTabelaFiltrada();
+      });
+
     container.querySelector("#cc-telefone")?.addEventListener("input", (e) => {
       let v = e.target.value.replace(/\D/g, "");
       if (v.length <= 10)
@@ -164,16 +175,22 @@ window.Modules.callcenter = {
 
   async _salvarRegistro() {
     const paciente = document.getElementById("cc-paciente")?.value.trim();
+    const medico = document.getElementById("cc-medico")?.value; // ALTERAÇÃO 1: campo médico
     const telefone = document.getElementById("cc-telefone")?.value.trim();
     const ultimo = document.getElementById("cc-ultimo")?.value;
     const atendeu = document.getElementById("cc-atendeu")?.checked;
     const reagendou = document.getElementById("cc-reagendou")?.checked;
     const dataReag = document.getElementById("cc-data-reag")?.value;
-    const obs = document.getElementById("cc-obs")?.value.trim();
     const editId = document.getElementById("cc-edit-id")?.value;
 
     if (!paciente || !telefone) {
       Alerts.aviso("Preencha paciente e telefone.");
+      return;
+    }
+    // ALTERAÇÃO 1: validação do campo médico obrigatório
+    if (!medico) {
+      Alerts.aviso("Selecione o médico vinculado à ativação.");
+      document.getElementById("cc-medico")?.focus();
       return;
     }
 
@@ -185,12 +202,12 @@ window.Modules.callcenter = {
     try {
       const dados = {
         paciente,
+        medico, // ALTERAÇÃO 1: médico vinculado à ativação
         telefone,
         ultimo_atendimento: ultimo || "",
         atendeu,
         reagendou,
         data_reagendamento: dataReag || "",
-        observacoes: obs,
       };
       const caminho = caminhoData("call_center", this._dataSelecionada);
 
@@ -223,12 +240,12 @@ window.Modules.callcenter = {
     const r = this._registros[id];
     if (!r) return;
     document.getElementById("cc-paciente").value = r.paciente || "";
+    document.getElementById("cc-medico").value = r.medico || ""; // ALTERAÇÃO 1: restaura médico
     document.getElementById("cc-telefone").value = r.telefone || "";
     document.getElementById("cc-ultimo").value = r.ultimo_atendimento || "";
     document.getElementById("cc-atendeu").checked = r.atendeu || false;
     document.getElementById("cc-reagendou").checked = r.reagendou || false;
     document.getElementById("cc-data-reag").value = r.data_reagendamento || "";
-    document.getElementById("cc-obs").value = r.observacoes || "";
     document.getElementById("cc-edit-id").value = id;
     const grpReag = document.getElementById("grupo-reagendou");
     grpReag.style.opacity = r.atendeu ? "1" : "0.5";
@@ -262,5 +279,94 @@ window.Modules.callcenter = {
       },
       "Excluir Ativação",
     );
+  },
+
+  // ALTERAÇÃO 4: painel de métricas por médico — somente admin
+  _renderMetricasPorMedico(registros) {
+    const el = document.getElementById("metricas-medico-cc");
+    if (!el || !isAdmin()) return;
+
+    const lista = Object.values(registros);
+    if (lista.length === 0) {
+      el.innerHTML = "";
+      return;
+    }
+
+    // Agrupa por médico
+    const grupos = {};
+    lista.forEach((r) => {
+      const m = r.medico || "Não informado";
+      if (!grupos[m])
+        grupos[m] = { medico: m, ativacoes: 0, atendeu: 0, reagendou: 0 };
+      grupos[m].ativacoes++;
+      if (r.atendeu) grupos[m].atendeu++;
+      if (r.reagendou) grupos[m].reagendou++;
+    });
+
+    const linhas = Object.values(grupos).sort(
+      (a, b) => b.ativacoes - a.ativacoes,
+    );
+    const totAtiv = linhas.reduce((s, g) => s + g.ativacoes, 0);
+    const totAtend = linhas.reduce((s, g) => s + g.atendeu, 0);
+    const totReag = linhas.reduce((s, g) => s + g.reagendou, 0);
+    const totConv = totAtiv > 0 ? Math.round((totReag / totAtiv) * 100) : 0;
+
+    const nomeMes = new Date().toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
+
+    el.innerHTML = `
+      <div class="card mt-3">
+        <div class="card-header">
+          <span class="card-title">
+            <i data-lucide="bar-chart-2" width="18" height="18" aria-hidden="true"></i>
+            Ativações por Médico — ${nomeMes}
+          </span>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table cc-medico-table" aria-label="Métricas por médico">
+            <thead>
+              <tr>
+                <th scope="col">Médico</th>
+                <th scope="col" class="table-number">Ativações</th>
+                <th scope="col" class="table-number">Atendeu</th>
+                <th scope="col" class="table-number">Agendou</th>
+                <th scope="col" class="table-number">Conversão</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${linhas
+                .map((g) => {
+                  const conv =
+                    g.ativacoes > 0
+                      ? Math.round((g.reagendou / g.ativacoes) * 100)
+                      : 0;
+                  return `<tr>
+                <td>${g.medico}</td>
+                <td class="table-number">${g.ativacoes}</td>
+                <td class="table-number">${g.atendeu}</td>
+                <td class="table-number">${g.reagendou}</td>
+                <td class="table-number">
+                  <span class="badge ${conv >= 50 ? "badge-success" : "badge-warning"}">${conv}%</span>
+                </td>
+              </tr>`;
+                })
+                .join("")}
+            </tbody>
+            <tfoot>
+              <tr class="cc-total-row">
+                <td><strong>TOTAL</strong></td>
+                <td class="table-number"><strong>${totAtiv}</strong></td>
+                <td class="table-number"><strong>${totAtend}</strong></td>
+                <td class="table-number"><strong>${totReag}</strong></td>
+                <td class="table-number"><strong>${totConv}%</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    `;
+    lucide.createIcons({ nodes: [el] });
   },
 };

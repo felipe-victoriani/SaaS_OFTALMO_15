@@ -624,8 +624,71 @@ window.Modules.admin = {
         </div>
       </div>
       <div id="rel-resultado"></div>
+
+      <!-- ALTERAÇÃO 5: Relatório do Call Center -->
+      <hr style="border:none;border-top:2px solid var(--border);margin:1.5rem 0">
+      <div class="card mb-3">
+        <div class="card-header">
+          <span class="card-title">
+            <i data-lucide="phone-call" width="18" height="18" aria-hidden="true"></i>
+            Relatório do Call Center
+          </span>
+        </div>
+        <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:1rem">Ativações por médico, atendente e período</p>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="min-width:130px;margin:0">
+            <label class="form-label">De:</label>
+            <input type="date" id="cc-rel-de" class="filter-input" value="${primeiroDoMes}">
+          </div>
+          <div class="form-group" style="min-width:130px;margin:0">
+            <label class="form-label">Até:</label>
+            <input type="date" id="cc-rel-ate" class="filter-input" value="${ultimoDoMes}">
+          </div>
+          <div class="form-group" style="min-width:160px;margin:0">
+            <label class="form-label">Médico:</label>
+            <select id="cc-rel-medico" class="filter-input">
+              <option value="todos">Todos os Médicos</option>
+              <option>Dra. Mariza</option>
+              <option>Dra. Fabiana</option>
+              <option>Dra. Mariana</option>
+              <option>Dr. Dante</option>
+              <option>Dr. Alberto</option>
+            </select>
+          </div>
+          <div class="form-group" style="min-width:160px;margin:0">
+            <label class="form-label">Atendente:</label>
+            <select id="cc-rel-atendente" class="filter-input">
+              <option value="todos">Todos</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-gerar-rel-cc">
+            <i data-lucide="search" width="14" height="14" aria-hidden="true"></i> Gerar
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-export-cc-pdf" style="display:none">
+            <i data-lucide="file-down" width="14" height="14" aria-hidden="true"></i> PDF
+          </button>
+          <button class="btn btn-secondary btn-sm" id="btn-export-cc-excel" style="display:none">
+            <i data-lucide="table" width="14" height="14" aria-hidden="true"></i> Excel
+          </button>
+        </div>
+      </div>
+      <div id="rel-callcenter-resultado" class="mb-3"></div>
     `;
     lucide.createIcons({ nodes: [container] });
+
+    // ALTERAÇÃO 5: popula dropdown de atendentes com acesso ao call center
+    lerUmaVez(CAMINHOS.usuarios()).then((snap) => {
+      const select = document.getElementById("cc-rel-atendente");
+      if (!select || !snap) return;
+      Object.entries(snap).forEach(([uid, u]) => {
+        if (u.permissoes?.call_center || u.isAdmin) {
+          const opt = document.createElement("option");
+          opt.value = uid;
+          opt.textContent = u.nome || uid;
+          select.appendChild(opt);
+        }
+      });
+    });
 
     // ALTERAÇÃO 6: listeners do relatório de recepção
     container
@@ -1106,6 +1169,37 @@ window.Modules.admin = {
     container
       .querySelector("#btn-exportar-excel")
       ?.addEventListener("click", () => this._exportarRelatorioExcel());
+
+    // ALTERAÇÃO 5: listeners do relatório do call center
+    container
+      .querySelector("#btn-gerar-rel-cc")
+      ?.addEventListener("click", async () => {
+        const de = document.getElementById("cc-rel-de")?.value;
+        const ate = document.getElementById("cc-rel-ate")?.value;
+        const medico =
+          document.getElementById("cc-rel-medico")?.value || "todos";
+        const atendente =
+          document.getElementById("cc-rel-atendente")?.value || "todos";
+        if (!de || !ate) {
+          Alerts.aviso("Informe o período (De e Até).");
+          return;
+        }
+        const resultEl = document.getElementById("rel-callcenter-resultado");
+        await RelatorioCallCenter.gerar(
+          { de, ate, medico, atendente },
+          resultEl,
+        );
+        document.getElementById("btn-export-cc-pdf").style.display = "";
+        document.getElementById("btn-export-cc-excel").style.display = "";
+      });
+
+    container
+      .querySelector("#btn-export-cc-pdf")
+      ?.addEventListener("click", () => RelatorioCallCenter.exportarPDF());
+
+    container
+      .querySelector("#btn-export-cc-excel")
+      ?.addEventListener("click", () => RelatorioCallCenter.exportarExcel());
   },
 
   _exportarRelatorioPDF() {

@@ -17,6 +17,20 @@
       class="filter-input"
       style="width: auto"
     />
+    <!-- ALTERAÇÃO 2: filtro de médico — somente admin -->
+    <select
+      id="filtro-medico-cc"
+      class="filter-input admin-only"
+      hidden
+      style="width: auto"
+    >
+      <option value="todos">Todos os Médicos</option>
+      <option>Dra. Mariza</option>
+      <option>Dra. Fabiana</option>
+      <option>Dra. Mariana</option>
+      <option>Dr. Dante</option>
+      <option>Dr. Alberto</option>
+    </select>
   </div>
 
   <div class="cards-grid cards-grid-4" id="cards-cc">
@@ -49,7 +63,7 @@
     </div>
     <div class="card">
       <div class="card-header">
-        <span class="card-label">Reagendados</span>
+        <span class="card-label">Agendados</span>
         <div class="card-icon icon-yellow">
           <i
             data-lucide="calendar-check"
@@ -76,7 +90,7 @@
         </div>
       </div>
       <div class="card-value" id="cc-taxa">0%</div>
-      <div class="card-meta">reagend. / ligações</div>
+      <div class="card-meta">agend. / ligações</div>
       <div class="card-bar bar-info"></div>
     </div>
   </div>
@@ -101,6 +115,20 @@
                 >Nome do Paciente <span class="required">*</span></label
               >
               <input type="text" id="cc-paciente" class="form-input" required />
+            </div>
+            <!-- ALTERAÇÃO 1: campo de médico obrigatório -->
+            <div class="form-group full-width">
+              <label class="form-label" for="cc-medico"
+                >Médico <span class="required">*</span></label
+              >
+              <select id="cc-medico" class="form-select" required>
+                <option value="">Selecione o médico</option>
+                <option>Dra. Mariza</option>
+                <option>Dra. Fabiana</option>
+                <option>Dra. Mariana</option>
+                <option>Dr. Dante</option>
+                <option>Dr. Alberto</option>
+              </select>
             </div>
             <div class="form-group full-width">
               <label class="form-label" for="cc-telefone"
@@ -139,7 +167,7 @@
                   <input type="checkbox" id="cc-reagendou" disabled />
                   <span class="toggle-track"></span>
                 </div>
-                <span class="toggle-label">Reagendou?</span>
+                <span class="toggle-label">Agendou?</span>
               </label>
             </div>
             <div
@@ -148,13 +176,9 @@
               style="display: none"
             >
               <label class="form-label" for="cc-data-reag"
-                >Data do Reagendamento</label
+                >Data do Agendamento</label
               >
               <input type="date" id="cc-data-reag" class="form-input" />
-            </div>
-            <div class="form-group full-width">
-              <label class="form-label" for="cc-obs">Observações</label>
-              <textarea id="cc-obs" class="form-textarea" rows="3"></textarea>
             </div>
           </div>
           <div class="form-actions">
@@ -194,10 +218,12 @@
               <tr>
                 <th scope="col">#</th>
                 <th scope="col">Paciente</th>
+                <!-- ALTERAÇÃO 3: coluna Médico -->
+                <th scope="col">Médico</th>
                 <th scope="col">Telefone</th>
                 <th scope="col">Último Atend.</th>
                 <th scope="col">Atendeu</th>
-                <th scope="col">Reagendou</th>
+                <th scope="col">Agendou</th>
                 <th scope="col">Data Reag.</th>
                 <th scope="col" class="admin-only" hidden>Atendente</th>
                 <th scope="col">Ações</th>
@@ -219,4 +245,7 @@
       </div>
     </div>
   </div>
+
+  <!-- ALTERAÇÃO 4: painel de métricas por médico — somente admin -->
+  <div id="metricas-medico-cc" class="admin-only" hidden></div>
 </div>

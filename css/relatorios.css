@@ -19,3 +19,15 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── ALTERAÇÃO: Tabela de métricas por médico (call center) ──── */
+.cc-medico-table tfoot .cc-total-row {
+  background: var(--bg-secondary, #f8fafc);
+  font-weight: 600;
+  border-top: 2px solid var(--border, #e2e8f0);
+}
+
+.cc-medico-table tfoot .cc-total-row td {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
