@@ -8,11 +8,13 @@ const btn = document.getElementById("btn-login");
 
 /* ── Helpers de UI ──────────────────────────────────────────── */
 function mostrarErro(msg) {
+  errorEl.className = "error-banner";
   errorEl.textContent = msg;
   errorEl.removeAttribute("hidden");
 }
 function ocultarErro() {
   errorEl.setAttribute("hidden", "");
+  errorEl.className = "error-banner";
 }
 function setCarregando(val) {
   btn.disabled = val;
@@ -60,6 +62,7 @@ form.addEventListener("submit", async (e) => {
 
   const email = document.getElementById("email").value.trim();
   const senha = document.getElementById("senha").value;
+  const lembrar = document.getElementById("lembrar-me").checked;
 
   if (!email || !senha) {
     mostrarErro("Preencha e-mail e senha.");
@@ -68,6 +71,10 @@ form.addEventListener("submit", async (e) => {
 
   setCarregando(true);
   try {
+    const persistence = lembrar
+      ? firebase.auth.Auth.Persistence.LOCAL
+      : firebase.auth.Auth.Persistence.SESSION;
+    await firebase.auth().setPersistence(persistence);
     const cred = await firebase.auth().signInWithEmailAndPassword(email, senha);
     const snap = await firebase
       .database()
@@ -98,4 +105,48 @@ firebase.auth().onAuthStateChanged((user) => {
         ud.isAdmin === true ? "admin" : primeiraRota(ud.permissoes || {});
       window.location.href = `app.html#${rota}`;
     });
+});
+/* ── Toggle mostrar/ocultar senha ────────────────────────────── */
+const senhaInput = document.getElementById("senha");
+const toggleBtn = document.getElementById("toggle-senha");
+const iconEye = document.getElementById("icon-eye");
+const iconEyeOff = document.getElementById("icon-eye-off");
+
+toggleBtn.addEventListener("click", () => {
+  const visible = senhaInput.type === "text";
+  senhaInput.type = visible ? "password" : "text";
+  iconEye.hidden = !visible;
+  iconEyeOff.hidden = visible;
+  toggleBtn.setAttribute(
+    "aria-label",
+    visible ? "Mostrar senha" : "Ocultar senha",
+  );
+  senhaInput.focus();
+});
+
+/* ── Aviso de Caps Lock ─────────────────────────────────────── */
+const capsWarn = document.getElementById("caps-warn");
+senhaInput.addEventListener("keyup", (e) => {
+  capsWarn.hidden = !e.getModifierState("CapsLock");
+});
+senhaInput.addEventListener("blur", () => {
+  capsWarn.hidden = true;
+});
+
+/* ── Esqueci a senha ─────────────────────────────────────────── */
+document.getElementById("link-esqueci").addEventListener("click", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("email").value.trim();
+  if (!email) {
+    mostrarErro("Digite seu e-mail acima para receber o link de redefinição.");
+    return;
+  }
+  try {
+    await firebase.auth().sendPasswordResetEmail(email);
+    errorEl.className = "error-banner success-banner";
+    errorEl.textContent = `Link enviado para ${email}. Verifique sua caixa de entrada.`;
+    errorEl.removeAttribute("hidden");
+  } catch (err) {
+    mostrarErro(mensagemErro(err.code));
+  }
 });
