@@ -100,6 +100,7 @@ window.Modules.admin = {
     if (aba === "metas") this._renderMetas(content);
     if (aba === "relatorios") this._renderRelatorios(content);
     if (aba === "auditoria") this._renderAuditoria(content);
+    if (aba === "backup") this._renderBackup(content);
   },
 
   // ---- ABA: USUÁRIOS ----
@@ -1476,6 +1477,112 @@ window.Modules.admin = {
     XLSX.utils.book_append_sheet(wb, wsDet, "Detalhamento");
 
     XLSX.writeFile(wb, `relatorio-${d.nomeMes.replace(/ /g, "-")}.xlsx`);
+  },
+
+  // ---- ABA: BACKUP ----
+  _renderBackup(container) {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Backup do Banco de Dados</span>
+        </div>
+        <p style="font-size:.9rem;color:var(--text-secondary);margin-bottom:1.5rem">
+          Baixa todos os dados do sistema em um arquivo <strong>.json</strong>.
+          Guarde em local seguro (nuvem pessoal, pen drive).
+        </p>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap">
+          <button class="btn btn-primary" id="btn-backup-completo">
+            <i data-lucide="download" width="16" height="16" aria-hidden="true"></i>
+            Baixar Backup Completo
+          </button>
+        </div>
+        <div id="backup-status" style="margin-top:1.25rem;font-size:.85rem;color:var(--text-secondary)"></div>
+      </div>
+    `;
+    lucide.createIcons({ nodes: [container] });
+
+    container
+      .querySelector("#btn-backup-completo")
+      ?.addEventListener("click", async () => {
+        const btn = container.querySelector("#btn-backup-completo");
+        const status = container.querySelector("#backup-status");
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-inline" aria-hidden="true"></span> Gerando backup…`;
+        status.textContent = "";
+
+        try {
+          const [
+            dados,
+            usuarios,
+            patrimonio,
+            estoque,
+            movimentacoes,
+            fornecedores,
+            metas,
+          ] = await Promise.all([
+            lerUmaVez("dados"),
+            lerUmaVez("usuarios"),
+            lerUmaVez("patrimonio"),
+            lerUmaVez("estoque"),
+            lerUmaVez("movimentacoes_estoque"),
+            lerUmaVez("fornecedores"),
+            lerUmaVez("metas"),
+          ]);
+
+          // Remover campos sensíveis de usuários antes de exportar
+          const usuariosSanitizados = usuarios
+            ? Object.fromEntries(
+                Object.entries(usuarios).map(([uid, u]) => [
+                  uid,
+                  {
+                    nome: u.nome,
+                    email: u.email,
+                    isAdmin: u.isAdmin,
+                    permissoes: u.permissoes,
+                  },
+                ]),
+              )
+            : {};
+
+          const backup = {
+            _meta: {
+              gerado_em: new Date().toISOString(),
+              gerado_por: window.AppState?.nome || "admin",
+              versao: "1.0",
+            },
+            dados: dados || {},
+            usuarios: usuariosSanitizados,
+            patrimonio: patrimonio || {},
+            estoque: estoque || {},
+            movimentacoes_estoque: movimentacoes || {},
+            fornecedores: fornecedores || {},
+            metas: metas || {},
+          };
+
+          const json = JSON.stringify(backup, null, 2);
+          const blob = new Blob([json], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          const dataHoje = new Date().toISOString().split("T")[0];
+          a.href = url;
+          a.download = `backup_oftalmo15_${dataHoje}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          const kb = (blob.size / 1024).toFixed(1);
+          status.innerHTML = `<span style="color:var(--success)">✓ Backup gerado com sucesso — ${kb} KB</span>`;
+          Alerts.sucesso("Backup baixado com sucesso!");
+        } catch (err) {
+          status.innerHTML = `<span style="color:var(--danger)">Erro ao gerar backup: ${escapeHtml(err.message || "")}</span>`;
+          Alerts.erro("Erro ao gerar backup.");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="download" width="16" height="16" aria-hidden="true"></i> Baixar Backup Completo`;
+          lucide.createIcons({ nodes: [btn] });
+        }
+      });
   },
 
   // ---- ABA: AUDITORIA ----
