@@ -100,6 +100,7 @@ function renderNavbar(sidebarNav, sidebarUser) {
 
   // Perfil do usuário
   const nome = window.AppState.nome || "Usuário";
+  const nomeEscapado = escapeHtml(nome);
   const papel = admin ? "Admin Master" : "Usuário";
 
   sidebarUser.innerHTML = `
@@ -108,7 +109,7 @@ function renderNavbar(sidebarNav, sidebarUser) {
         <i data-lucide="user" width="16" height="16"></i>
       </div>
       <div>
-        <div class="sidebar-user-name" title="${nome}">${nome}</div>
+        <div class="sidebar-user-name" title="${nomeEscapado}">${nomeEscapado}</div>
         <div class="sidebar-user-role">${papel}</div>
       </div>
     </div>

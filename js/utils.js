@@ -3,6 +3,22 @@
 // ================================================================
 
 /**
+ * Escapa caracteres especiais HTML para prevenir XSS.
+ * Use sempre que inserir dados externos em innerHTML ou atributos.
+ * @param {any} str
+ * @returns {string}
+ */
+function escapeHtml(str) {
+  if (str == null) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
+/**
  * Formata input como moeda BRL em tempo real.
  * Uso: <input type="text" inputmode="numeric" oninput="formatarMoedaInput(this)" data-valor="0">
  * // CORRIGIDO: formata automaticamente campos monetários evitando erros de entrada manual

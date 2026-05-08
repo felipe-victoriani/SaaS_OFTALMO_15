@@ -172,8 +172,8 @@ window.Modules.admin = {
                       .map(
                         (u) => `
                   <tr>
-                    <td data-label="Nome">${u.nome || "—"}</td>
-                    <td data-label="E-mail">${u.email || "—"}</td>
+                    <td data-label="Nome">${escapeHtml(u.nome) || "—"}</td>
+                    <td data-label="E-mail">${escapeHtml(u.email) || "—"}</td>
                     <td data-label="Perfil"><span class="badge ${u.isAdmin ? "badge-primary" : "badge-info"}">${u.isAdmin ? "Admin" : "Usuário"}</span></td>
                     <td data-label="Módulos" style="font-size:.75rem">${
                       Object.keys(u.permissoes || {})
@@ -181,10 +181,10 @@ window.Modules.admin = {
                         .join(", ") || "—"
                     }</td>
                     <td data-label="Ações">
-                      <button class="btn btn-ghost btn-icon btn-sm" onclick="Modules.admin._editarUsuario('${u.uid}')" aria-label="Editar usuário">
+                      <button class="btn btn-ghost btn-icon btn-sm btn-editar-usuario" data-uid="${escapeHtml(u.uid)}" aria-label="Editar usuário">
                         <i data-lucide="pencil" width="14" height="14" aria-hidden="true"></i>
                       </button>
-                      <button class="btn btn-ghost btn-icon btn-sm btn-danger" onclick="Modules.admin._excluirUsuario('${u.uid}', '${u.nome || ""}')" aria-label="Excluir usuário">
+                      <button class="btn btn-ghost btn-icon btn-sm btn-danger btn-excluir-usuario" data-uid="${escapeHtml(u.uid)}" data-nome="${escapeHtml(u.nome || "")}" aria-label="Excluir usuário">
                         <i data-lucide="trash-2" width="14" height="14" aria-hidden="true"></i>
                       </button>
                     </td>
@@ -203,6 +203,15 @@ window.Modules.admin = {
     container
       .querySelector("#btn-novo-usuario")
       ?.addEventListener("click", () => this._modalUsuario(null));
+
+    container.querySelectorAll(".btn-editar-usuario").forEach((btn) => {
+      btn.addEventListener("click", () => this._editarUsuario(btn.dataset.uid));
+    });
+    container.querySelectorAll(".btn-excluir-usuario").forEach((btn) => {
+      btn.addEventListener("click", () =>
+        this._excluirUsuario(btn.dataset.uid, btn.dataset.nome),
+      );
+    });
   },
 
   _modalUsuario(uid) {
@@ -226,11 +235,11 @@ window.Modules.admin = {
         corpo: `
           <div class="form-group">
             <label class="form-label required" for="adm-u-nome">Nome</label>
-            <input type="text" id="adm-u-nome" class="form-input" value="${user?.nome || ""}" required>
+            <input type="text" id="adm-u-nome" class="form-input" value="${escapeHtml(user?.nome || "")}" required>
           </div>
           <div class="form-group">
             <label class="form-label required" for="adm-u-email">E-mail</label>
-            <input type="email" id="adm-u-email" class="form-input" value="${user?.email || ""}" ${uid ? "readonly" : ""} required>
+            <input type="email" id="adm-u-email" class="form-input" value="${escapeHtml(user?.email || "")}" ${uid ? "readonly" : ""} required>
           </div>
           ${
             !uid
@@ -331,7 +340,7 @@ window.Modules.admin = {
 
   _excluirUsuario(uid, nome) {
     Modal.confirmar(
-      `Excluir o usuário "${nome}" e todos os seus dados? (LGPD Art. 18 — Direito ao Apagamento)`,
+      `Excluir o usuário "${escapeHtml(nome)}" e todos os seus dados? (LGPD Art. 18 — Direito ao Apagamento)`,
       async () => {
         try {
           await excluirContaUsuario(uid);
@@ -388,10 +397,10 @@ window.Modules.admin = {
                       .map(
                         (m) => `
                   <tr>
-                    <td>${m.nome}</td>
+                    <td>${escapeHtml(m.nome)}</td>
                     <td class="table-number">${formatarMoeda(m.valor || 0)}</td>
                     <td>
-                      <button class="btn btn-ghost btn-icon btn-sm btn-danger" onclick="Modules.admin._removerMeta('${m._id}')" aria-label="Remover meta">
+                      <button class="btn btn-ghost btn-icon btn-sm btn-danger btn-remover-meta" data-id="${escapeHtml(m._id)}" aria-label="Remover meta">
                         <i data-lucide="trash-2" width="14" height="14" aria-hidden="true"></i>
                       </button>
                     </td>
@@ -406,6 +415,10 @@ window.Modules.admin = {
       </div>
     `;
     lucide.createIcons({ nodes: [container] });
+
+    container.querySelectorAll(".btn-remover-meta").forEach((btn) => {
+      btn.addEventListener("click", () => this._removerMeta(btn.dataset.id));
+    });
 
     container
       .querySelector("#form-meta")
