@@ -6,16 +6,15 @@ if ("serviceWorker" in navigator) {
     () => {
       // Previne múltiplos reloads na mesma sessão
       const SW_RELOAD_KEY = "sw-updated";
-      
-      if (sessionStorage.getItem(SW_RELOAD_KEY)) {
-        sessionStorage.removeItem(SW_RELOAD_KEY);
-        return;
-      }
-
       let refreshing = false;
 
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (refreshing) return;
+        // Verifica se já recarregou nesta sessão para evitar loop infinito
+        if (sessionStorage.getItem(SW_RELOAD_KEY)) {
+          sessionStorage.removeItem(SW_RELOAD_KEY);
+          return;
+        }
         refreshing = true;
         sessionStorage.setItem(SW_RELOAD_KEY, "true");
         window.location.reload();
