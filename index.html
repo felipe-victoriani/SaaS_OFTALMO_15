@@ -176,6 +176,8 @@
       function showFirebaseLoadError() {
         const errorNode = document.getElementById("error-msg");
         if (!errorNode) return;
+        if (errorNode.dataset.shown === "true") return;
+        errorNode.dataset.shown = "true";
         errorNode.textContent =
           "Erro ao carregar Firebase. Verifique sua conexão e recarregue a página.";
         errorNode.className = "error-banner";

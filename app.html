@@ -182,6 +182,7 @@
       function showFirebaseLoadError() {
         const errorNode = document.getElementById("firebase-error-msg");
         if (!errorNode) return;
+        if (errorNode.style.display === "block") return;
         errorNode.style.display = "block";
       }
     </script>

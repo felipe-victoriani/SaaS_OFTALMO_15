@@ -56,12 +56,13 @@ function criarErroTimeout() {
 }
 
 function comTimeout(promise, timeoutMs = 10000) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(criarErroTimeout()), timeoutMs),
-    ),
-  ]);
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(criarErroTimeout()), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() =>
+    clearTimeout(timeoutId),
+  );
 }
 
 /* ── Primeira rota com permissão ────────────────────────────── */
@@ -106,7 +107,14 @@ form.addEventListener("submit", async (e) => {
   console.log("[LOGIN] Iniciando autenticação...", { email, lembrar });
   setCarregando(true);
   try {
-    await comTimeout(firebase.database().ref(".info/connected").once("value"));
+    const connSnap = await comTimeout(
+      firebase.database().ref(".info/connected").once("value"),
+    );
+    if (connSnap.val() !== true) {
+      const err = new Error("Firebase sem conectividade ativa.");
+      err.code = "auth/unavailable";
+      throw err;
+    }
 
     const persistence = lembrar
       ? firebase.auth.Auth.Persistence.LOCAL
