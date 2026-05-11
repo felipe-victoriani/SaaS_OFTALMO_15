@@ -4,13 +4,20 @@ if ("serviceWorker" in navigator) {
   window.addEventListener(
     "load",
     () => {
+      // Previne múltiplos reloads na mesma sessão
+      const SW_RELOAD_KEY = "sw-updated";
+      
+      if (sessionStorage.getItem(SW_RELOAD_KEY)) {
+        sessionStorage.removeItem(SW_RELOAD_KEY);
+        return;
+      }
+
       let refreshing = false;
-      let shouldRefresh = false;
 
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (!shouldRefresh) return;
         if (refreshing) return;
         refreshing = true;
+        sessionStorage.setItem(SW_RELOAD_KEY, "true");
         window.location.reload();
       });
 
@@ -26,12 +33,9 @@ if ("serviceWorker" in navigator) {
                 newWorker.state === "installed" &&
                 navigator.serviceWorker.controller
               ) {
-                if (
-                  confirm("Nova versão disponível! Recarregar para atualizar?")
-                ) {
-                  shouldRefresh = true;
-                  newWorker.postMessage({ type: "SKIP_WAITING" });
-                }
+                // Atualiza automaticamente sem popup
+                console.log("[SW] Nova versão disponível, atualizando...");
+                newWorker.postMessage({ type: "SKIP_WAITING" });
               }
             });
           });
