@@ -20,7 +20,15 @@
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/layout.css" />
     <link rel="stylesheet" href="css/components.css" />
@@ -28,6 +36,25 @@
     <link rel="stylesheet" href="css/relatorios.css" />
   </head>
   <body>
+    <div
+      id="firebase-error-msg"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10000;
+        background: var(--danger-light, #fef2f2);
+        border-bottom: 1px solid var(--danger-border, #fecaca);
+        color: var(--danger-text, #b91c1c);
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        text-align: center;
+      "
+    >
+      Erro ao carregar Firebase. Verifique sua conexão e recarregue a página.
+    </div>
     <!-- Loading inicial -->
     <div
       id="app-loading"
@@ -151,9 +178,26 @@
 
     <!-- ===== DEPENDÊNCIAS EXTERNAS ===== -->
     <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script>
+      function showFirebaseLoadError() {
+        const errorNode = document.getElementById("firebase-error-msg");
+        if (!errorNode) return;
+        if (errorNode.style.display === "block") return;
+        errorNode.style.display = "block";
+      }
+    </script>
+    <script
+      src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
+      onerror="showFirebaseLoadError()"
+    ></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"
+      onerror="showFirebaseLoadError()"
+    ></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"
+      onerror="showFirebaseLoadError()"
+    ></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <!-- Lucide Icons -->

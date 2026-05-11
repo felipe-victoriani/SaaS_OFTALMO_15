@@ -20,7 +20,15 @@
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
     <link rel="stylesheet" href="css/login.css" />
     <!-- Estilos em css/login.css -->
   </head>
@@ -164,10 +172,31 @@
     </main>
     <p class="login-dev">Desenvolvido por Carlos Felipe Lima Victoriani</p>
 
+    <script>
+      function showFirebaseLoadError() {
+        const errorNode = document.getElementById("error-msg");
+        if (!errorNode) return;
+        if (errorNode.dataset.shown === "true") return;
+        errorNode.dataset.shown = "true";
+        errorNode.textContent =
+          "Erro ao carregar Firebase. Verifique sua conexão e recarregue a página.";
+        errorNode.className = "error-banner";
+        errorNode.removeAttribute("hidden");
+      }
+    </script>
     <!-- Firebase compat v9 -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
+      onerror="showFirebaseLoadError()"
+    ></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"
+      onerror="showFirebaseLoadError()"
+    ></script>
+    <script
+      src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"
+      onerror="showFirebaseLoadError()"
+    ></script>
     <script src="firebase-config.js"></script>
     <script src="js/login.js"></script>
     <script src="js/sw-update.js"></script>

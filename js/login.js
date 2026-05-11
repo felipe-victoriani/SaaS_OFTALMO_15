@@ -32,9 +32,37 @@ function mensagemErro(code) {
     "auth/wrong-password": "Credenciais inválidas.",
     "auth/invalid-credential": "Credenciais inválidas.",
     "auth/too-many-requests": "Muitas tentativas. Tente novamente mais tarde.",
-    "auth/network-request-failed": "Erro de conexão. Verifique a internet.",
+    "auth/network-request-failed":
+      "Erro de conexão. Verifique sua internet e tente novamente.",
+    "auth/timeout": "Tempo de conexão esgotado. Tente novamente.",
+    "auth/unavailable":
+      "Serviço temporariamente indisponível. Tente novamente em instantes.",
   };
   return map[code] || "Erro ao entrar. Tente novamente.";
+}
+
+function firebaseDisponivel() {
+  return (
+    typeof firebase !== "undefined" &&
+    typeof firebase.auth === "function" &&
+    typeof firebase.database === "function"
+  );
+}
+
+function criarErroTimeout() {
+  const err = new Error("Tempo limite de conexão atingido.");
+  err.code = "auth/timeout";
+  return err;
+}
+
+function comTimeout(promise, timeoutMs = 10000) {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(criarErroTimeout()), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() =>
+    clearTimeout(timeoutId),
+  );
 }
 
 /* ── Primeira rota com permissão ────────────────────────────── */
@@ -69,43 +97,80 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
+  if (!firebaseDisponivel()) {
+    mostrarErro(
+      "Erro ao carregar componentes. Verifique sua conexão e recarregue a página.",
+    );
+    return;
+  }
+
+  console.log("[LOGIN] Iniciando autenticação...", { email, lembrar });
   setCarregando(true);
   try {
+    await comTimeout(firebase.database().ref(".info/connected").once("value"));
+
     const persistence = lembrar
       ? firebase.auth.Auth.Persistence.LOCAL
       : firebase.auth.Auth.Persistence.SESSION;
-    await firebase.auth().setPersistence(persistence);
-    const cred = await firebase.auth().signInWithEmailAndPassword(email, senha);
-    const snap = await firebase
+    await comTimeout(firebase.auth().setPersistence(persistence));
+    console.log("[LOGIN] Persistence configurada");
+
+    const cred = await comTimeout(
+      firebase.auth().signInWithEmailAndPassword(email, senha),
+    );
+    console.log("[LOGIN] Usuário autenticado:", cred.user.uid);
+
+    console.log("[LOGIN] Buscando dados do usuário no banco...");
+    const snap = await comTimeout(
+      firebase
       .database()
       .ref(`usuarios/${cred.user.uid}`)
-      .get();
+      .get(),
+    );
     const userData = snap.val() || {};
+    console.log("[LOGIN] Dados do usuário carregados:", userData);
+
     const rota =
       userData.isAdmin === true
         ? "admin"
         : primeiraRota(userData.permissoes || {});
+    console.log("[LOGIN] Redirecionando para rota:", rota);
     window.location.href = `app.html#${rota}`;
   } catch (err) {
     setCarregando(false);
-    mostrarErro(mensagemErro(err.code));
+    console.error("[LOGIN] Erro detalhado:", {
+      code: err?.code,
+      message: err?.message,
+      stack: err?.stack,
+      error: err,
+    });
+    mostrarErro(mensagemErro(err?.code));
   }
 });
 
 /* ── Já autenticado: redirecionar ───────────────────────────── */
-firebase.auth().onAuthStateChanged((user) => {
-  if (!user) return;
-  firebase
-    .database()
-    .ref(`usuarios/${user.uid}`)
-    .get()
-    .then((snap) => {
-      const ud = snap.val() || {};
-      const rota =
-        ud.isAdmin === true ? "admin" : primeiraRota(ud.permissoes || {});
-      window.location.href = `app.html#${rota}`;
-    });
-});
+if (firebaseDisponivel()) {
+  firebase.auth().onAuthStateChanged((user) => {
+    if (!user) return;
+    console.log("[LOGIN] Usuário já autenticado:", user.uid);
+    firebase
+      .database()
+      .ref(`usuarios/${user.uid}`)
+      .get()
+      .then((snap) => {
+        const ud = snap.val() || {};
+        const rota =
+          ud.isAdmin === true ? "admin" : primeiraRota(ud.permissoes || {});
+        console.log("[LOGIN] Redirecionando usuário autenticado para:", rota);
+        window.location.href = `app.html#${rota}`;
+      })
+      .catch((err) => {
+        console.error("[LOGIN] Erro ao carregar usuário autenticado:", err);
+      });
+  });
+} else {
+  console.warn("[LOGIN] Firebase não carregado no listener de autenticação.");
+}
 /* ── Toggle mostrar/ocultar senha ────────────────────────────── */
 const senhaInput = document.getElementById("senha");
 const toggleBtn = document.getElementById("toggle-senha");
@@ -136,17 +201,29 @@ senhaInput.addEventListener("blur", () => {
 /* ── Esqueci a senha ─────────────────────────────────────────── */
 document.getElementById("link-esqueci").addEventListener("click", async (e) => {
   e.preventDefault();
+  if (!firebaseDisponivel()) {
+    mostrarErro(
+      "Erro ao carregar componentes. Verifique sua conexão e recarregue a página.",
+    );
+    return;
+  }
   const email = document.getElementById("email").value.trim();
   if (!email) {
     mostrarErro("Digite seu e-mail acima para receber o link de redefinição.");
     return;
   }
   try {
-    await firebase.auth().sendPasswordResetEmail(email);
+    await comTimeout(firebase.auth().sendPasswordResetEmail(email));
     errorEl.className = "error-banner success-banner";
     errorEl.textContent = `Link enviado para ${email}. Verifique sua caixa de entrada.`;
     errorEl.removeAttribute("hidden");
   } catch (err) {
+    console.error("[LOGIN] Erro ao enviar redefinição de senha:", {
+      code: err?.code,
+      message: err?.message,
+      stack: err?.stack,
+      error: err,
+    });
     mostrarErro(mensagemErro(err.code));
   }
 });
