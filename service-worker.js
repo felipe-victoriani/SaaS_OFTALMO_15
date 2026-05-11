@@ -3,8 +3,8 @@
 // ================================================================
 "use strict";
 
-const CACHE_NAME = "oftalmo15-v6";
-const CACHE_STATIC = "oftalmo15-static-v6";
+const CACHE_NAME = "oftalmo15-v7";
+const CACHE_STATIC = "oftalmo15-static-v7";
 
 // Assets para cache imediato (Cache First)
 const STATIC_ASSETS = [
@@ -131,4 +131,13 @@ self.addEventListener("fetch", (event) => {
 // ---- MESSAGE (skip waiting) ----
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+// Auto-update: força reload quando novo SW estiver disponível
+self.addEventListener("controllerchange", () => {
+  if (self.refreshing) return;
+  self.refreshing = true;
+  self.clients.matchAll({ type: "window" }).then((clients) => {
+    clients.forEach((client) => client.navigate(client.url));
+  });
 });

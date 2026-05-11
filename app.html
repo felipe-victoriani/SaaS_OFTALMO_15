@@ -225,11 +225,31 @@
         }, 1500);
       });
 
-      // Registrar Service Worker (PWA)
+      // Detecta e aplica atualizações do service worker
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
             .register("/service-worker.js")
+            .then((reg) => {
+              reg.addEventListener("updatefound", () => {
+                const newWorker = reg.installing;
+                if (!newWorker) return;
+
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    if (
+                      confirm("Nova versão disponível! Recarregar para atualizar?")
+                    ) {
+                      newWorker.postMessage({ type: "SKIP_WAITING" });
+                      window.location.reload();
+                    }
+                  }
+                });
+              });
+            })
             .catch((err) => console.warn("[SW] Registro falhou:", err));
         });
       }
