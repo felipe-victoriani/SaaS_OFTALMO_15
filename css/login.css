@@ -11,7 +11,7 @@
   --border: #e2e8f0;
   --danger: #ef4444;
   --input-bg: #f8fafc;
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --radius: 10px;
   --shadow: 0 16px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(59, 130, 246, 0.12);
 }
