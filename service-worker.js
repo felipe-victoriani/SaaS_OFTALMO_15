@@ -3,8 +3,8 @@
 // ================================================================
 "use strict";
 
-const CACHE_NAME = "oftalmo15-v7";
-const CACHE_STATIC = "oftalmo15-static-v7";
+const CACHE_NAME = "oftalmo15-v8";
+const CACHE_STATIC = "oftalmo15-static-v8";
 
 // Assets para cache imediato (Cache First)
 const STATIC_ASSETS = [
