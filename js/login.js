@@ -192,7 +192,9 @@ toggleBtn.addEventListener("click", () => {
 /* ── Aviso de Caps Lock ─────────────────────────────────────── */
 const capsWarn = document.getElementById("caps-warn");
 senhaInput.addEventListener("keyup", (e) => {
-  capsWarn.hidden = !e.getModifierState("CapsLock");
+  if (e && typeof e.getModifierState === "function") {
+    capsWarn.hidden = !e.getModifierState("CapsLock");
+  }
 });
 senhaInput.addEventListener("blur", () => {
   capsWarn.hidden = true;
