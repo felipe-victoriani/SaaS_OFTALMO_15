@@ -107,14 +107,7 @@ form.addEventListener("submit", async (e) => {
   console.log("[LOGIN] Iniciando autenticação...", { email, lembrar });
   setCarregando(true);
   try {
-    const connSnap = await comTimeout(
-      firebase.database().ref(".info/connected").once("value"),
-    );
-    if (connSnap.val() !== true) {
-      const err = new Error("Firebase sem conectividade ativa.");
-      err.code = "auth/unavailable";
-      throw err;
-    }
+    await comTimeout(firebase.database().ref(".info/connected").once("value"));
 
     const persistence = lembrar
       ? firebase.auth.Auth.Persistence.LOCAL
@@ -151,18 +144,7 @@ form.addEventListener("submit", async (e) => {
       stack: err?.stack,
       error: err,
     });
-    if (err?.code === "auth/timeout") {
-      mostrarErro("Tempo de conexão esgotado. Tente novamente.");
-      return;
-    }
-    if (
-      err?.code === "auth/network-request-failed" ||
-      err?.code === "auth/unavailable"
-    ) {
-      mostrarErro("Não foi possível conectar ao servidor. Verifique sua conexão.");
-      return;
-    }
-    mostrarErro(mensagemErro(err.code));
+    mostrarErro(mensagemErro(err?.code));
   }
 });
 
