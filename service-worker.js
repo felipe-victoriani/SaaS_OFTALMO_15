@@ -132,12 +132,3 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
-
-// Auto-update: força reload quando novo SW estiver disponível
-self.addEventListener("controllerchange", () => {
-  if (self.refreshing) return;
-  self.refreshing = true;
-  self.clients.matchAll({ type: "window" }).then((clients) => {
-    clients.forEach((client) => client.navigate(client.url));
-  });
-});

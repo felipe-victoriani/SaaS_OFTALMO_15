@@ -170,32 +170,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="js/login.js"></script>
-    <script>
-      // Detecta e aplica atualizações do service worker
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("/service-worker.js")
-          .then((reg) => {
-            reg.addEventListener("updatefound", () => {
-              const newWorker = reg.installing;
-              if (!newWorker) return;
-
-              newWorker.addEventListener("statechange", () => {
-                if (
-                  newWorker.state === "installed" &&
-                  navigator.serviceWorker.controller
-                ) {
-                  // Nova versão disponível, recarrega a página
-                  if (confirm("Nova versão disponível! Recarregar para atualizar?")) {
-                    newWorker.postMessage({ type: "SKIP_WAITING" });
-                    window.location.reload();
-                  }
-                }
-              });
-            });
-          })
-          .catch((err) => console.warn("[SW] Registro falhou:", err));
-      }
-    </script>
+    <script src="js/sw-update.js"></script>
   </body>
 </html>
