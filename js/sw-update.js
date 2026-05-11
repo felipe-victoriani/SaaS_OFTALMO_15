@@ -2,8 +2,10 @@
 
 if ("serviceWorker" in navigator) {
   let refreshing = false;
+  let shouldRefresh = false;
 
   navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!shouldRefresh) return;
     if (refreshing) return;
     refreshing = true;
     window.location.reload();
@@ -22,6 +24,7 @@ if ("serviceWorker" in navigator) {
             navigator.serviceWorker.controller
           ) {
             if (confirm("Nova versão disponível! Recarregar para atualizar?")) {
+              shouldRefresh = true;
               newWorker.postMessage({ type: "SKIP_WAITING" });
             }
           }
