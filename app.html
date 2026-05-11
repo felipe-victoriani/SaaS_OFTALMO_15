@@ -225,14 +225,7 @@
         }, 1500);
       });
 
-      // Registrar Service Worker (PWA)
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/service-worker.js")
-            .catch((err) => console.warn("[SW] Registro falhou:", err));
-        });
-      }
     </script>
+    <script src="js/sw-update.js"></script>
   </body>
 </html>
