@@ -90,12 +90,30 @@ function renderNavbar(sidebarNav, sidebarUser) {
   `
     : "";
 
+  // Links externos (apenas admin master)
+  const linksExternosHtml = admin
+    ? `
+    <div class="sidebar-section" style="margin-top:0.5rem">
+      <p class="sidebar-section-title">Links Externos</p>
+      <a href="https://crmparaclinica.vercel.app/" target="_blank" rel="noopener noreferrer" class="sidebar-link" aria-label="Abrir CRM para Clínica">
+        <i data-lucide="external-link" width="18" height="18" aria-hidden="true"></i>
+        <span>CRM Clínica</span>
+      </a>
+      <a href="https://faturamento-oftalmo-15.vercel.app/" target="_blank" rel="noopener noreferrer" class="sidebar-link" aria-label="Abrir Faturamento Oftalmo">
+        <i data-lucide="external-link" width="18" height="18" aria-hidden="true"></i>
+        <span>Faturamento Oftalmo</span>
+      </a>
+    </div>
+  `
+    : "";
+
   sidebarNav.innerHTML = `
     <div class="sidebar-section">
       <p class="sidebar-section-title">Módulos</p>
       ${linksHtml}
     </div>
     ${adminHtml}
+    ${linksExternosHtml}
   `;
 
   // Perfil do usuário
@@ -122,11 +140,20 @@ function renderNavbar(sidebarNav, sidebarUser) {
   // Inicializar ícones Lucide
   lucide.createIcons({ nodes: [sidebarNav, sidebarUser] });
 
-  // Eventos de clique nos links
-  sidebarNav.querySelectorAll(".sidebar-link").forEach((link) => {
+  // Eventos de clique nos links internos (buttons com data-rota)
+  sidebarNav.querySelectorAll(".sidebar-link[data-rota]").forEach((link) => {
     link.addEventListener("click", () => {
       const rota = link.dataset.rota;
       navegarPara(rota);
+      // Fechar sidebar em mobile
+      document.querySelector(".sidebar")?.classList.remove("open");
+      document.querySelector(".sidebar-overlay")?.classList.remove("visible");
+    });
+  });
+
+  // Fechar sidebar ao clicar em links externos
+  sidebarNav.querySelectorAll("a.sidebar-link").forEach((link) => {
+    link.addEventListener("click", () => {
       // Fechar sidebar em mobile
       document.querySelector(".sidebar")?.classList.remove("open");
       document.querySelector(".sidebar-overlay")?.classList.remove("visible");
