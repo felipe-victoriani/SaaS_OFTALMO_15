@@ -3,8 +3,8 @@
 // ================================================================
 "use strict";
 
-const CACHE_NAME = "oftalmo15-v7";
-const CACHE_STATIC = "oftalmo15-static-v7";
+const CACHE_NAME = "oftalmo15-v10";
+const CACHE_STATIC = "oftalmo15-static-v10";
 
 // Assets para cache imediato (Cache First)
 const STATIC_ASSETS = [
@@ -79,7 +79,20 @@ self.addEventListener("fetch", (event) => {
 
   // Nunca cachear Firebase ou APIs dinâmicas
   if (NEVER_CACHE.some((pattern) => url.includes(pattern))) {
-    event.respondWith(fetch(request));
+    event.respondWith(
+      fetch(request).catch((err) => {
+        if (url.includes("gstatic.com/firebasejs")) {
+          console.warn(
+            "[SW] Firebase CDN bloqueado ou indisponível:",
+            url,
+            err,
+          );
+        } else {
+          console.warn("[SW] Falha em recurso não-cacheável:", url, err);
+        }
+        throw err;
+      }),
+    );
     return;
   }
 
@@ -92,13 +105,18 @@ self.addEventListener("fetch", (event) => {
       caches.match(request).then(
         (cached) =>
           cached ||
-          fetch(request).then((response) => {
-            if (response && response.status === 200) {
-              const clone = response.clone();
-              caches.open(CACHE_STATIC).then((c) => c.put(request, clone));
-            }
-            return response;
-          }),
+          fetch(request)
+            .then((response) => {
+              if (response && response.status === 200) {
+                const clone = response.clone();
+                caches.open(CACHE_STATIC).then((c) => c.put(request, clone));
+              }
+              return response;
+            })
+            .catch((err) => {
+              console.warn("[SW] Falha ao carregar asset estático:", url, err);
+              throw err;
+            }),
       ),
     );
     return;
@@ -106,7 +124,12 @@ self.addEventListener("fetch", (event) => {
 
   // Network First para navegação (HTML)
   if (request.destination === "document") {
-    event.respondWith(fetch(request).catch(() => caches.match("/index.html")));
+    event.respondWith(
+      fetch(request).catch((err) => {
+        console.warn("[SW] Falha de navegação, servindo fallback:", url, err);
+        return caches.match("/index.html");
+      }),
+    );
     return;
   }
 
@@ -121,7 +144,10 @@ self.addEventListener("fetch", (event) => {
             }
             return response;
           })
-          .catch(() => cached);
+          .catch((err) => {
+            console.warn("[SW] Falha ao atualizar recurso:", url, err);
+            return cached;
+          });
         return cached || fetchPromise;
       });
     }),
