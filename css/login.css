@@ -1,19 +1,20 @@
 /* ================================================================
-   LOGIN — Página de Acesso (Tema Escuro Oftalmológico)
+   LOGIN — Página de Acesso (Tema Claro Feminino)
    ================================================================ */
 :root {
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --bg: #070d26;
+  --accent: #db2777;
+  --accent-hover: #be185d;
+  --bg: #fdf2f8;
   --card-bg: #ffffff;
-  --text: #0f172a;
+  --text: #1e1b4b;
   --text-muted: #64748b;
-  --border: #e2e8f0;
+  --border: #fce7f3;
   --danger: #ef4444;
-  --input-bg: #f8fafc;
+  --input-bg: #ffffff;
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --radius: 10px;
-  --shadow: 0 16px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(59, 130, 246, 0.12);
+  --shadow:
+    0 16px 60px rgba(219, 39, 119, 0.12), 0 0 0 1px rgba(219, 39, 119, 0.1);
 }
 
 *,
@@ -28,7 +29,7 @@ body {
   height: 100%;
 }
 
-/* ── Fundo: gradiente base + padrão de íris ─────────────────── */
+/* ── Fundo: mesh aurora claro ──────────────────────────────── */
 body {
   font-family: var(--font-sans);
   color: var(--text);
@@ -39,77 +40,77 @@ body {
   min-height: 100vh;
   padding: 1rem;
   overflow: hidden;
-  background: linear-gradient(160deg, #050a1e 0%, #091430 55%, #050c22 100%);
+  background: #fdf2f8;
   position: relative;
 }
 
-/* Íris — camadas concêntricas imitando a íris humana */
+/* Mancha 1 — rosa (canto superior esquerdo) */
 body::before {
   content: "";
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 140vmax;
-  height: 140vmax;
+  top: -20%;
+  left: -15%;
+  width: 70vmax;
+  height: 70vmax;
   border-radius: 50%;
   background: radial-gradient(
     circle at center,
-    #04091a 0% 6%,
-    #0c1d50 6% 9%,
-    #071228 9% 13%,
-    #122b6e 13% 16%,
-    #0a1840 16% 21%,
-    #193882 21% 24%,
-    #0d2050 24% 30%,
-    #1e44a0 30% 33%,
-    #112460 33% 40%,
-    #2350b4 40% 43%,
-    #142a70 43% 51%,
-    #275bc2 51% 54%,
-    #163080 54% 62%,
-    rgba(28, 64, 140, 0.55) 62% 71%,
-    rgba(10, 22, 60, 0.3) 71% 80%,
-    transparent 80% 100%
+    rgba(251, 113, 133, 0.32) 0%,
+    rgba(244, 114, 182, 0.15) 40%,
+    transparent 70%
   );
   pointer-events: none;
   z-index: 0;
-  animation: iris-pulse 9s ease-in-out infinite;
+  animation: aurora-1 14s ease-in-out infinite;
 }
 
-/* Brilho do limbo (reflexo na borda da córnea) */
+/* Mancha 2 — lavanda (canto inferior direito) */
 body::after {
   content: "";
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 62vmax;
-  height: 62vmax;
+  bottom: -25%;
+  right: -15%;
+  width: 65vmax;
+  height: 65vmax;
   border-radius: 50%;
-  border: 1.5px solid rgba(59, 130, 246, 0.1);
-  box-shadow:
-    0 0 70px 12px rgba(59, 130, 246, 0.07),
-    0 0 140px 30px rgba(59, 130, 246, 0.04),
-    inset 0 0 70px 12px rgba(59, 130, 246, 0.05);
+  background: radial-gradient(
+    circle at center,
+    rgba(192, 132, 252, 0.28) 0%,
+    rgba(167, 139, 250, 0.12) 40%,
+    transparent 70%
+  );
   pointer-events: none;
   z-index: 0;
+  animation: aurora-2 18s ease-in-out infinite;
 }
 
-@keyframes iris-pulse {
+@keyframes aurora-1 {
   0%,
   100% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(0, 0) scale(1);
     opacity: 1;
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.018);
-    opacity: 0.88;
+    transform: translate(4%, 5%) scale(1.08);
+    opacity: 0.75;
+  }
+}
+
+@keyframes aurora-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-5%, -4%) scale(1.1);
+    opacity: 0.7;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body::before {
+  body::before,
+  body::after {
     animation: none;
   }
 }
@@ -160,28 +161,28 @@ body::after {
   justify-content: center;
   color: white;
   flex-shrink: 0;
-  box-shadow: 0 2px 18px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 2px 18px rgba(219, 39, 119, 0.4);
 }
 
 .login-title {
   font-size: 1.375rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #1e1b4b;
   line-height: 1.2;
 }
 
 .login-subtitle {
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(100, 80, 120, 0.7);
   margin-top: 0.125rem;
 }
 
 /* ── Card ───────────────────────────────────────────────────── */
 .login-card {
-  background: rgba(10, 18, 50, 0.6);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(59, 130, 246, 0.22);
+  border: 1px solid rgba(219, 39, 119, 0.14);
   border-radius: var(--radius);
   padding: 2rem;
   box-shadow: var(--shadow);
@@ -190,7 +191,7 @@ body::after {
 .card-heading {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #ffffff;
+  color: #1e1b4b;
   margin-bottom: 1.5rem;
 }
 
@@ -219,17 +220,17 @@ body::after {
   display: block;
   font-size: 0.8rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.72);
+  color: #6b21a8;
   margin-bottom: 0.375rem;
 }
 
 .field-input {
   width: 100%;
   padding: 0.625rem 0.875rem;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(219, 39, 119, 0.2);
   border-radius: 8px;
-  color: #ffffff;
+  color: #1e1b4b;
   font-size: 0.9375rem;
   font-family: var(--font-sans);
   transition:
@@ -242,19 +243,19 @@ body::after {
   outline: none;
   border-color: var(--accent);
   box-shadow:
-    0 0 0 3px rgba(59, 130, 246, 0.22),
-    0 0 18px rgba(59, 130, 246, 0.12);
-  background: rgba(255, 255, 255, 0.1);
+    0 0 0 3px rgba(219, 39, 119, 0.15),
+    0 0 18px rgba(219, 39, 119, 0.08);
+  background: #ffffff;
 }
 
 .field-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(110, 70, 120, 0.4);
 }
 
 /* ── Submit button ──────────────────────────────────────────── */
 .btn-entrar {
   width: 100%;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -277,8 +278,8 @@ body::after {
 }
 
 .btn-entrar:hover:not(:disabled) {
-  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-  box-shadow: 0 4px 24px rgba(59, 130, 246, 0.45);
+  background: linear-gradient(135deg, #f472b6 0%, #db2777 100%);
+  box-shadow: 0 4px 24px rgba(219, 39, 119, 0.4);
   transform: translateY(-1px);
 }
 .btn-entrar:active:not(:disabled) {
@@ -290,7 +291,7 @@ body::after {
   cursor: not-allowed;
 }
 .btn-entrar:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.5);
+  outline: 3px solid rgba(219, 39, 119, 0.45);
   outline-offset: 2px;
 }
 
@@ -322,7 +323,7 @@ body::after {
   text-align: center;
   margin-top: 1.5rem;
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(100, 60, 100, 0.5);
 }
 
 .login-footer a {
@@ -339,7 +340,7 @@ body::after {
   width: 100%;
   text-align: center;
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(100, 60, 100, 0.35);
   z-index: 1;
   pointer-events: none;
 }
@@ -359,7 +360,7 @@ body::after {
   background: none;
   border: none;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(110, 70, 120, 0.45);
   padding: 0;
   display: flex;
   align-items: center;
@@ -367,7 +368,7 @@ body::after {
   transition: color 0.15s;
 }
 .toggle-senha:hover {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(110, 70, 120, 0.9);
 }
 .toggle-senha:focus-visible {
   outline: 2px solid var(--accent);
@@ -394,7 +395,7 @@ body::after {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(100, 60, 100, 0.6);
   cursor: pointer;
   user-select: none;
 }
@@ -406,12 +407,12 @@ body::after {
 }
 .link-forgot {
   font-size: 0.8rem;
-  color: rgba(99, 160, 246, 0.9);
+  color: #be185d;
   text-decoration: none;
   transition: color 0.15s;
 }
 .link-forgot:hover {
-  color: #93c5fd;
+  color: #9d174d;
   text-decoration: underline;
 }
 
@@ -419,5 +420,5 @@ body::after {
 .success-banner {
   background: rgba(74, 222, 128, 0.1) !important;
   border-color: rgba(74, 222, 128, 0.35) !important;
-  color: #86efac !important;
+  color: #15803d !important;
 }
