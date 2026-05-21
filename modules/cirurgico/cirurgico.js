@@ -157,7 +157,7 @@ window.Modules.cirurgico = {
     );
     const editId = document.getElementById("cir-edit-id")?.value;
 
-    if (!paciente || !cirurgiao || !tipo || !olho) {
+    if (!paciente || !cirurgiao || !tipo) {
       Alerts.aviso("Preencha todos os campos obrigatórios.");
       return;
     }
