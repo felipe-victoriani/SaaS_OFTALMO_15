@@ -5,16 +5,16 @@
 /* === VARIÁVEIS CSS ============================================ */
 :root {
   /* Cores */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #f1f5f9;
+  --bg-primary: #fdf2f8;
+  --bg-secondary: #fce7f3;
   --bg-card: #ffffff;
-  --bg-card-hover: #f8fafc;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-light: #eff6ff;
-  --text-primary: #0f172a;
+  --bg-card-hover: #fdf2f8;
+  --accent: #db2777;
+  --accent-hover: #be185d;
+  --accent-light: #fce7f3;
+  --text-primary: #1e1b4b;
   --text-secondary: #64748b;
-  --border: #e2e8f0;
+  --border: #fce7f3;
   --success: #10b981;
   --success-light: #ecfdf5;
   --warning: #f59e0b;

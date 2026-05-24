@@ -14,7 +14,7 @@
 .sidebar {
   width: var(--sidebar-collapsed);
   height: 100vh;
-  background-color: #1e40af;
+  background-color: #831843;
   border-right: none;
   display: flex;
   flex-direction: column;
@@ -27,7 +27,7 @@
 }
 .sidebar:hover {
   width: var(--sidebar-width);
-  box-shadow: 4px 0 24px rgba(30, 64, 175, 0.45);
+  box-shadow: 4px 0 24px rgba(219, 39, 119, 0.45);
 }
 
 /* Logo / marca */
