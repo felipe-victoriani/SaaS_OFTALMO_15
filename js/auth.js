@@ -17,40 +17,59 @@ window.AppState = {
  * Carrega dados do usuário no AppState.
  */
 function initAuth(onReady) {
-  auth.onAuthStateChanged(async (user) => {
+  let _cancelarEscutaUsuario = null;
+  let _primeiroCarregamento = true;
+
+  auth.onAuthStateChanged((user) => {
+    // Cancelar escuta anterior se trocar de conta
+    if (_cancelarEscutaUsuario) {
+      _cancelarEscutaUsuario();
+      _cancelarEscutaUsuario = null;
+    }
+
     if (!user) {
-      // Sem sessão — redirecionar para login
       window.location.href = "index.html";
       return;
     }
 
-    try {
-      const snapshot = await db.ref(`usuarios/${user.uid}`).get();
+    const refUsuario = db.ref(`usuarios/${user.uid}`);
+
+    _cancelarEscutaUsuario = () => refUsuario.off("value");
+
+    refUsuario.on("value", async (snapshot) => {
       const userData = snapshot.val();
 
       if (!userData) {
-        // Usuário sem cadastro no sistema
         await auth.signOut();
         window.location.href = "index.html";
         return;
       }
 
-      // Preencher estado global
+      // Atualizar estado global
       window.AppState.user = user;
       window.AppState.userData = userData;
       window.AppState.isAdmin = userData.isAdmin === true;
       window.AppState.uid = user.uid;
       window.AppState.nome = userData.nome || user.email;
 
-      // Registrar login na auditoria
-      await registrarAuditoria("login", "auth", user.uid, null);
-
-      // Callback de pronto
-      if (typeof onReady === "function") onReady(window.AppState);
-    } catch (err) {
-      console.error("[auth] Erro ao carregar dados do usuário:", err);
+      if (_primeiroCarregamento) {
+        _primeiroCarregamento = false;
+        try {
+          await registrarAuditoria("login", "auth", user.uid, null);
+        } catch (_) { /* ignorar erro de auditoria */ }
+        if (typeof onReady === "function") onReady(window.AppState);
+      } else {
+        // Permissões atualizadas em tempo real — re-renderizar navbar
+        const sidebarNav = document.getElementById("sidebar-nav");
+        const sidebarUser = document.getElementById("sidebar-user");
+        if (sidebarNav && sidebarUser) {
+          renderNavbar(sidebarNav, sidebarUser);
+        }
+      }
+    }, (err) => {
+      console.error("[auth] Erro ao escutar dados do usuário:", err);
       window.location.href = "index.html";
-    }
+    });
   });
 }
 

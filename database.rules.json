@@ -36,6 +36,10 @@
       ".read": "auth != null && (root.child('usuarios').child(auth.uid).child('isAdmin').val() === true || root.child('usuarios').child(auth.uid).child('permissoes').child('fornecedores').val() === true)",
       ".write": "auth != null && (root.child('usuarios').child(auth.uid).child('isAdmin').val() === true || root.child('usuarios').child(auth.uid).child('permissoes').child('fornecedores').val() === true)"
     },
+    "campanhas": {
+      ".read": "auth != null && (root.child('usuarios').child(auth.uid).child('isAdmin').val() === true || root.child('usuarios').child(auth.uid).child('permissoes').child('marketing').val() === true)",
+      ".write": "auth != null && (root.child('usuarios').child(auth.uid).child('isAdmin').val() === true || root.child('usuarios').child(auth.uid).child('permissoes').child('marketing').val() === true)"
+    },
     "auditoria": {
       ".read": "auth != null && root.child('usuarios').child(auth.uid).child('isAdmin').val() === true",
       ".write": "auth != null"

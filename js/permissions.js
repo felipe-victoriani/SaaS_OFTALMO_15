@@ -60,6 +60,7 @@ function modulosPermitidos() {
       "patrimonio",
       "estoque",
       "fornecedores",
+      "marketing",
       "admin",
     ];
   }
@@ -74,6 +75,7 @@ function modulosPermitidos() {
     patrimonio: "patrimonio",
     estoque: "estoque",
     fornecedores: "fornecedores",
+    marketing: "marketing",
   };
 
   return Object.entries(mapa)

@@ -40,6 +40,10 @@ const CAMINHOS = {
   movimentacao: (id) => `movimentacoes_estoque/${id}`,
   fornecedores: () => "fornecedores",
   fornecedor: (id) => `fornecedores/${id}`,
+  campanhas: () => "campanhas",
+  campanha: (id) => `campanhas/${id}`,
+  campanhaContatos: (campanhaId) => `campanhas/${campanhaId}/contatos`,
+  campanhaContato: (campanhaId, id) => `campanhas/${campanhaId}/contatos/${id}`,
   auditoria: () => "auditoria",
 };
 

@@ -119,6 +119,7 @@ window.Modules.admin = {
       "patrimonio",
       "estoque",
       "fornecedores",
+      "marketing",
     ];
 
     container.innerHTML = `
@@ -193,6 +194,7 @@ window.Modules.admin = {
         "patrimonio",
         "estoque",
         "fornecedores",
+        "marketing",
       ];
       Modal.abrirModal({
         titulo: uid ? "Editar Usuário" : "Novo Usuário",

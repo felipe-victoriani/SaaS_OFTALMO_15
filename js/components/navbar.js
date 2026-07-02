@@ -49,6 +49,12 @@ const MODULOS_NAV = [
     icone: "truck",
     permissao: "fornecedores",
   },
+  {
+    id: "marketing",
+    label: "Marketing",
+    icone: "megaphone",
+    permissao: "marketing",
+  },
 ];
 
 const ADMIN_NAV = { id: "admin", label: "Administração", icone: "settings" };

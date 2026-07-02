@@ -11,6 +11,7 @@ const MODULOS_VALIDOS = [
   "patrimonio",
   "estoque",
   "fornecedores",
+  "marketing",
   "admin",
 ];
 
