@@ -109,6 +109,10 @@ function renderNavbar(sidebarNav, sidebarUser) {
         <i data-lucide="external-link" width="18" height="18" aria-hidden="true"></i>
         <span>Faturamento Oftalmo</span>
       </a>
+      <a href="https://farmcc-control.vercel.app/index.html" target="_blank" rel="noopener noreferrer" class="sidebar-link" aria-label="Abrir FarmCC Control">
+        <i data-lucide="external-link" width="18" height="18" aria-hidden="true"></i>
+        <span>FarmCC Control</span>
+      </a>
     </div>
   `
     : "";
