@@ -29,100 +29,68 @@ body {
   height: 100%;
 }
 
-/* ── Fundo: mesh aurora claro ──────────────────────────────── */
 body {
   font-family: var(--font-sans);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   min-height: 100vh;
-  padding: 1rem;
-  overflow: hidden;
-  background: #f0fdfa;
+}
+
+/* ── Fundo: foto em tela cheia, formulário ancorado à direita ── */
+.login-split {
   position: relative;
+  min-height: 100vh;
 }
 
-/* Mancha 1 — teal (canto superior esquerdo) */
-body::before {
-  content: "";
+.login-photo {
   position: fixed;
-  top: -20%;
-  left: -15%;
-  width: 70vmax;
-  height: 70vmax;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at center,
-    rgba(45, 212, 191, 0.32) 0%,
-    rgba(20, 184, 166, 0.15) 40%,
-    transparent 70%
-  );
-  pointer-events: none;
+  inset: 0;
+  background: url("../img/back_login.jpeg") center center / cover no-repeat;
   z-index: 0;
-  animation: aurora-1 14s ease-in-out infinite;
 }
 
-/* Mancha 2 — ciano (canto inferior direito) */
-body::after {
-  content: "";
-  position: fixed;
-  bottom: -25%;
-  right: -15%;
-  width: 65vmax;
-  height: 65vmax;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at center,
-    rgba(34, 211, 238, 0.28) 0%,
-    rgba(6, 182, 212, 0.12) 40%,
-    transparent 70%
-  );
-  pointer-events: none;
-  z-index: 0;
-  animation: aurora-2 18s ease-in-out infinite;
-}
-
-@keyframes aurora-1 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: translate(4%, 5%) scale(1.08);
-    opacity: 0.75;
-  }
-}
-
-@keyframes aurora-2 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: translate(-5%, -4%) scale(1.1);
-    opacity: 0.7;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body::before,
-  body::after {
-    animation: none;
+@media (max-width: 900px) {
+  .login-photo {
+    display: none;
   }
 }
 
 /* ── Container ─────────────────────────────────────────────── */
 .login-page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
-  position: relative;
-  z-index: 1;
+  justify-content: flex-end;
+  padding: 2rem 6vw;
+}
+
+/* Painel translúcido atrás do formulário — deixa a maior parte da
+   fachada visível e só esmaece perto de onde o card fica */
+.login-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 30%,
+    rgba(240, 253, 250, 0.55) 50%,
+    var(--bg) 68%,
+    var(--bg) 100%
+  );
+}
+
+@media (max-width: 900px) {
+  .login-page {
+    justify-content: center;
+    padding: 1rem;
+  }
+  .login-page::before {
+    background: var(--bg);
+  }
 }
 
 @keyframes entrada {
@@ -137,6 +105,8 @@ body::after {
 }
 
 .login-container {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 400px;
   animation: entrada 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -179,9 +149,7 @@ body::after {
 
 /* ── Card ───────────────────────────────────────────────────── */
 .login-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: var(--card-bg);
   border: 1px solid rgba(13, 148, 136, 0.14);
   border-radius: var(--radius);
   padding: 2rem;
@@ -334,15 +302,10 @@ body::after {
   text-decoration: underline;
 }
 .login-dev {
-  position: fixed;
-  bottom: 1rem;
-  left: 0;
-  width: 100%;
   text-align: center;
+  margin-top: 0.75rem;
   font-size: 0.72rem;
   color: rgba(71, 85, 105, 0.4);
-  z-index: 1;
-  pointer-events: none;
 }
 
 /* ── Password wrapper & toggle ──────────────────────────────── */
