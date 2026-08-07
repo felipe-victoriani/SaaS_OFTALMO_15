@@ -16,8 +16,31 @@ function _getSecondaryAuth() {
 
 window.Modules = window.Modules || {};
 
+const MEDICOS_METAS = [
+  "Dra. Mariza",
+  "Dra. Fabiana",
+  "Dra. Mariana",
+  "Dr. Dante",
+  "Dr. Alberto",
+];
+
+function _mesAtualStr() {
+  const hoje = new Date();
+  return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+}
+
 window.Modules.admin = {
   _abaAtiva: "usuarios",
+  _chartsMetas: [],
+
+  _destruirChartsMetas() {
+    this._chartsMetas.forEach((c) => {
+      try {
+        c.destroy();
+      } catch (_) {}
+    });
+    this._chartsMetas = [];
+  },
 
   mount(container) {
     if (!exigirPermissao("admin", container)) return;
@@ -355,16 +378,54 @@ window.Modules.admin = {
   },
 
   // ---- ABA: METAS ----
-  async _renderMetas(container) {
-    const snap = await lerUmaVez(CAMINHOS.metas());
-    const metas = snap
+  async _renderMetas(container, anoMesSelecionado) {
+    this._destruirChartsMetas();
+    const anoMes = anoMesSelecionado || _mesAtualStr();
+    const [ano, mes] = anoMes.split("-").map(Number);
+    const { inicio, fim } = intervaloMes(ano, mes);
+    const nomeMes = new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
+
+    const [snap, honorariosArr] = await Promise.all([
+      lerUmaVez(CAMINHOS.metas()),
+      buscarIntervalo("honorarios", inicio, fim),
+    ]);
+    const todasMetas = snap
       ? Object.entries(snap).map(([k, v]) => ({ _id: k, ...v }))
       : [];
+
+    // Realizado do mês por médico (mesmo cálculo do relatório: honorários PF lançados)
+    const realizadoPorMedico = {};
+    honorariosArr
+      .filter((r) => r.lancado)
+      .forEach((r) => {
+        const n = r.nome_cirurgiao || "Desconhecido";
+        realizadoPorMedico[n] =
+          (realizadoPorMedico[n] || 0) +
+          (r.honorario_cirurgiao_pf || 0) +
+          (r.lio_parte_cirurgiao || 0) +
+          (r.honorario_auxiliar_pf || 0) +
+          (r.honorario_instrumentador_pf || 0);
+      });
+
+    const linhas = MEDICOS_METAS.map((nome) => {
+      const efetiva = metaEfetiva(todasMetas, nome, anoMes);
+      const realizado = realizadoPorMedico[nome] || 0;
+      const valorMeta = efetiva?.valor || 0;
+      const propria = efetiva?.anoMes === anoMes;
+      return { nome, efetiva, realizado, valorMeta, propria };
+    });
 
     container.innerHTML = `
       <div class="card">
         <div class="card-header">
           <span class="card-title">Metas por Médico</span>
+        </div>
+        <div class="form-group" style="max-width:220px">
+          <label class="form-label" for="metas-mes">Mês de referência</label>
+          <input type="month" id="metas-mes" class="filter-input" value="${anoMes}">
         </div>
         <form id="form-meta" novalidate>
           <div class="form-grid">
@@ -372,55 +433,97 @@ window.Modules.admin = {
               <label class="form-label required" for="meta-nome">Nome do Médico</label>
               <select id="meta-nome" class="form-select" required>
                 <option value="">Selecione...</option>
-                <option>Dra. Mariza</option>
-                <option>Dra. Fabiana</option>
-                <option>Dra. Mariana</option>
-                <option>Dr. Dante</option>
-                <option>Dr. Alberto</option>
+                ${MEDICOS_METAS.map((n) => `<option>${n}</option>`).join("")}
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label required" for="meta-valor">Meta Mensal (R$)</label>
+              <label class="form-label required" for="meta-mes">Mês</label>
+              <input type="month" id="meta-mes" class="form-input" value="${anoMes}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label required" for="meta-valor">Meta do Mês (R$)</label>
               <input type="text" inputmode="numeric" id="meta-valor" class="form-input" oninput="formatarMoedaInput(this)" placeholder="R$ 0,00" data-valor="0" required>
             </div>
           </div>
+          <p style="font-size:.78rem;color:var(--text-secondary);margin:-.5rem 0 .75rem">
+            Cada mês tem seu próprio valor — salvar aqui não altera meses já passados.
+          </p>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">
-              <i data-lucide="plus" width="16" height="16" aria-hidden="true"></i> Adicionar Meta
+              <i data-lucide="save" width="16" height="16" aria-hidden="true"></i> Salvar Meta do Mês
             </button>
           </div>
         </form>
       </div>
+
       <div class="card mt-2">
-        <div class="card-header"><span class="card-title">Metas Cadastradas</span></div>
+        <div class="card-header"><span class="card-title">Meta vs. Realizado — ${nomeMes}</span></div>
+        <canvas id="chart-metas" height="90"></canvas>
+      </div>
+
+      <div class="card mt-2">
+        <div class="card-header"><span class="card-title">Metas de ${nomeMes}</span></div>
         <div class="table-scroll">
           <table class="data-table">
-            <thead><tr><th>Médico</th><th>Meta Mensal</th><th>Ações</th></tr></thead>
-            <tbody id="tbody-metas">
-              ${
-                metas.length === 0
-                  ? `<tr><td colspan="3"><div class="table-empty"><p>Nenhuma meta cadastrada.</p></div></td></tr>`
-                  : metas
-                      .map(
-                        (m) => `
+            <thead><tr><th>Médico</th><th>Meta</th><th>Realizado</th><th>%</th><th>Ações</th></tr></thead>
+            <tbody>
+              ${linhas
+                .map((l) => {
+                  const pct =
+                    l.valorMeta > 0
+                      ? Math.round((l.realizado / l.valorMeta) * 100)
+                      : 0;
+                  const origemMeta = l.valorMeta
+                    ? l.propria
+                      ? ""
+                      : `<div style="font-size:.72rem;color:var(--text-secondary)">herdada de ${
+                          l.efetiva.anoMes
+                            ? (() => {
+                                const [ay, am] = l.efetiva.anoMes
+                                  .split("-")
+                                  .map(Number);
+                                return new Date(
+                                  ay,
+                                  am - 1,
+                                  1,
+                                ).toLocaleDateString("pt-BR", {
+                                  month: "short",
+                                  year: "numeric",
+                                });
+                              })()
+                            : "período anterior"
+                        }</div>`
+                    : "";
+                  return `
                   <tr>
-                    <td>${m.nome}</td>
-                    <td class="table-number">${formatarMoeda(m.valor || 0)}</td>
+                    <td>${l.nome}</td>
+                    <td class="table-number">${l.valorMeta ? formatarMoeda(l.valorMeta) : "—"}${origemMeta}</td>
+                    <td class="table-number">${formatarMoeda(l.realizado)}</td>
+                    <td class="table-number">${l.valorMeta ? pct + "%" : "—"}</td>
                     <td>
                       <div class="btn-group">
-                        <button class="btn btn-ghost btn-icon btn-sm" onclick="Modules.admin._editarMeta('${m._id}', '${(m.nome || "").replace(/'/g, "\\'").replace(/"/g, "&quot;")}', ${m.valor || 0})" aria-label="Editar meta">
+                        ${
+                          l.propria
+                            ? `
+                        <button class="btn btn-ghost btn-icon btn-sm" onclick="Modules.admin._editarMeta('${l.efetiva._id}', '${l.nome.replace(/'/g, "\\'")}', ${l.valorMeta}, '${anoMes}')" aria-label="Editar meta">
                           <i data-lucide="pencil" width="14" height="14" aria-hidden="true"></i>
                         </button>
-                        <button class="btn btn-ghost btn-icon btn-sm btn-danger" onclick="Modules.admin._removerMeta('${m._id}', '${(m.nome || "").replace(/'/g, "\\'")}')" aria-label="Remover meta">
+                        <button class="btn btn-ghost btn-icon btn-sm btn-danger" onclick="Modules.admin._removerMeta('${l.efetiva._id}', '${l.nome.replace(/'/g, "\\'")}', '${anoMes}')" aria-label="Remover meta">
                           <i data-lucide="trash-2" width="14" height="14" aria-hidden="true"></i>
                         </button>
+                        `
+                            : `
+                        <button class="btn btn-ghost btn-sm" onclick="Modules.admin._preencherMeta('${l.nome.replace(/'/g, "\\'")}', ${l.valorMeta})">
+                          Definir meta deste mês
+                        </button>
+                        `
+                        }
                       </div>
                     </td>
                   </tr>
-                `,
-                      )
-                      .join("")
-              }
+                `;
+                })
+                .join("")}
             </tbody>
           </table>
         </div>
@@ -428,46 +531,107 @@ window.Modules.admin = {
     `;
     lucide.createIcons({ nodes: [container] });
 
+    const chartEl = document.getElementById("chart-metas");
+    if (chartEl) {
+      const c = new Chart(chartEl, {
+        type: "bar",
+        data: {
+          labels: linhas.map((l) => l.nome),
+          datasets: [
+            {
+              label: "Meta",
+              data: linhas.map((l) => l.valorMeta),
+              backgroundColor: "#94a3b8",
+            },
+            {
+              label: "Realizado",
+              data: linhas.map((l) => l.realizado),
+              backgroundColor: linhas.map((l) =>
+                l.valorMeta && l.realizado >= l.valorMeta
+                  ? "#059669"
+                  : "#0d9488",
+              ),
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: "bottom" } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { callback: (v) => "R$" + (v / 1000).toFixed(0) + "k" },
+            },
+          },
+        },
+      });
+      this._chartsMetas.push(c);
+    }
+
+    container
+      .querySelector("#metas-mes")
+      ?.addEventListener("change", (e) => {
+        if (e.target.value) this._renderMetas(container, e.target.value);
+      });
+
     container
       .querySelector("#form-meta")
       ?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const nome = document.getElementById("meta-nome").value.trim();
-        // CORRIGIDO: usa getValorNumerico para ler campo formatado como moeda
+        const mesForm = document.getElementById("meta-mes").value;
         const valor = getValorNumerico(document.getElementById("meta-valor"));
-        if (!nome || valor <= 0) {
-          Alerts.aviso("Preencha nome e valor.");
+        if (!nome || !mesForm || valor <= 0) {
+          Alerts.aviso("Preencha médico, mês e valor.");
           return;
         }
         try {
-          await criar(CAMINHOS.metas(), { nome, valor });
-          Alerts.sucesso("Meta adicionada!");
-          this._renderAba("metas");
+          const existente = todasMetas.find(
+            (m) => m.nome === nome && m.anoMes === mesForm,
+          );
+          if (existente) {
+            await atualizar(`${CAMINHOS.metas()}/${existente._id}`, {
+              valor,
+            });
+            await registrarAuditoria("editar", "metas", existente._id, {
+              nome,
+              valor,
+              anoMes: mesForm,
+            });
+          } else {
+            await criar(CAMINHOS.metas(), { nome, valor, anoMes: mesForm });
+          }
+          Alerts.sucesso("Meta salva!");
+          this._renderMetas(container, mesForm);
         } catch (err) {
           Alerts.erro("Erro ao salvar meta.");
         }
       });
   },
 
-  _editarMeta(id, nome, valor) {
+  _preencherMeta(nome, valorSugerido) {
+    document.getElementById("meta-nome").value = nome;
+    const campoValor = document.getElementById("meta-valor");
+    if (campoValor && valorSugerido) {
+      campoValor.dataset.valor = valorSugerido;
+      campoValor.value = formatarMoeda(valorSugerido);
+    }
+    document
+      .getElementById("form-meta")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  },
+
+  _editarMeta(id, nome, valor, anoMes) {
     Modal.abrirModal({
-      titulo: "Editar Meta",
+      titulo: `Editar Meta — ${anoMes}`,
       icone: "pencil",
       tamanho: "sm",
       corpo: `
+        <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:.75rem">
+          Médico: <strong>${nome}</strong> — só afeta o mês <strong>${anoMes}</strong>.
+        </p>
         <div class="form-group">
-          <label class="form-label required" for="edit-meta-nome">Médico</label>
-          <select id="edit-meta-nome" class="form-select" required>
-            <option value="">Selecione...</option>
-            <option ${nome === "Dra. Mariza" ? "selected" : ""}>Dra. Mariza</option>
-            <option ${nome === "Dra. Fabiana" ? "selected" : ""}>Dra. Fabiana</option>
-            <option ${nome === "Dra. Mariana" ? "selected" : ""}>Dra. Mariana</option>
-            <option ${nome === "Dr. Dante" ? "selected" : ""}>Dr. Dante</option>
-            <option ${nome === "Dr. Alberto" ? "selected" : ""}>Dr. Alberto</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label required" for="edit-meta-valor">Meta Mensal (R$)</label>
+          <label class="form-label required" for="edit-meta-valor">Meta do Mês (R$)</label>
           <input type="text" inputmode="numeric" id="edit-meta-valor" class="form-input"
             oninput="formatarMoedaInput(this)"
             placeholder="R$ 0,00"
@@ -489,28 +653,25 @@ window.Modules.admin = {
           classe: "btn-primary",
           icone: "save",
           onClick: async () => {
-            const novoNome = document
-              .getElementById("edit-meta-nome")
-              ?.value.trim();
             const novoValor = getValorNumerico(
               document.getElementById("edit-meta-valor"),
             );
-            if (!novoNome || novoValor <= 0) {
-              Alerts.aviso("Preencha nome e valor.");
+            if (novoValor <= 0) {
+              Alerts.aviso("Informe um valor válido.");
               return;
             }
             try {
               await atualizar(`${CAMINHOS.metas()}/${id}`, {
-                nome: novoNome,
                 valor: novoValor,
               });
               await registrarAuditoria("editar", "metas", id, {
-                nome: novoNome,
+                nome,
                 valor: novoValor,
+                anoMes,
               });
               Modal.fecharModal();
               Alerts.sucesso("Meta atualizada!");
-              this._renderAba("metas");
+              this._renderMetas(document.getElementById("admin-tab-content"), anoMes);
             } catch (err) {
               Alerts.erro("Erro ao atualizar meta.");
             }
@@ -520,16 +681,17 @@ window.Modules.admin = {
     });
   },
 
-  // ALTERAÇÃO 2: somente exclusão — confirmação com nome do médico e instrução de recriação
-  async _removerMeta(id, nomeMedico) {
+  async _removerMeta(id, nomeMedico, anoMes) {
     Modal.confirmar(
-      `Excluir a meta de <strong>${nomeMedico || "este médico"}</strong>?<br><br>` +
-        `Para definir um novo valor, crie uma nova meta após a exclusão.`,
+      `Excluir a meta de <strong>${nomeMedico || "este médico"}</strong> para <strong>${anoMes}</strong>?`,
       async () => {
         await remover(`${CAMINHOS.metas()}/${id}`);
-        await registrarAuditoria("excluir", "metas", id, { nome: nomeMedico });
+        await registrarAuditoria("excluir", "metas", id, {
+          nome: nomeMedico,
+          anoMes,
+        });
         Alerts.sucesso("Meta removida.");
-        this._renderAba("metas");
+        this._renderMetas(document.getElementById("admin-tab-content"), anoMes);
       },
       "Excluir Meta",
     );
@@ -838,7 +1000,7 @@ window.Modules.admin = {
 
         // ── Função auxiliar: badge % meta ────────────────────────────
         const badgeMeta = (nome, total) => {
-          const m = metas.find((x) => x.nome === nome);
+          const m = metaEfetiva(metas, nome, mesInput);
           if (!m || !m.valor) return "";
           const pct = Math.min(100, Math.round((total / m.valor) * 100));
           const cor =
@@ -933,7 +1095,7 @@ window.Modules.admin = {
                         <td class="table-number">${formatarMoeda(d.instPF)}</td>
                         <td class="table-number fw-6" style="color:var(--accent)">${formatarMoeda(d.total)}</td>
                         <td style="min-width:140px">${(() => {
-                          const m = metas.find((x) => x.nome === n);
+                          const m = metaEfetiva(metas, n, mesInput);
                           return m ? formatarMoeda(m.valor) : "—";
                         })()}</td>
                       </tr>`;

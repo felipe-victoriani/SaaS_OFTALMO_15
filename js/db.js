@@ -189,6 +189,26 @@ async function registrarAuditoria(acao, modulo, registroId, dadosAnteriores) {
   }
 }
 
+// ── Metas por médico/mês ─────────────────────────────────────────
+
+/**
+ * Retorna a meta "efetiva" de um médico para um mês (YYYY-MM): a mais
+ * recente cadastrada até esse mês (carry-forward). Registros antigos
+ * sem `anoMes` são tratados como base legada, sempre elegível.
+ * Editar/criar a meta de um mês nunca altera o resultado de meses
+ * anteriores, pois cada mês tem seu próprio registro.
+ * @param {Array<{nome:string, valor:number, anoMes?:string}>} metas
+ * @param {string} nome
+ * @param {string} anoMesAlvo - "YYYY-MM"
+ * @returns {{nome:string, valor:number, anoMes?:string, _id?:string}|null}
+ */
+function metaEfetiva(metas, nome, anoMesAlvo) {
+  const candidatos = (metas || [])
+    .filter((m) => m.nome === nome && (!m.anoMes || m.anoMes <= anoMesAlvo))
+    .sort((a, b) => (a.anoMes || "0000-00").localeCompare(b.anoMes || "0000-00"));
+  return candidatos.length ? candidatos[candidatos.length - 1] : null;
+}
+
 // ── Helpers de formatação ────────────────────────────────────────
 
 /**

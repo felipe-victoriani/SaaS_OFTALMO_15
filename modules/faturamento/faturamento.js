@@ -263,25 +263,31 @@ window.Modules.faturamento = {
       this._charts.push(c);
     }
 
-    this._renderMetas(porMedico);
+    const anoMesAlvo = `${this._anoSelecionado}-${String(this._mesSelecionado).padStart(2, "0")}`;
+    this._renderMetas(porMedico, anoMesAlvo);
     // ALTERAÇÃO 5: renderizar gráficos de receita da recepção
     this._renderizarGraficosRecepcao(recepcaoArr);
   },
 
-  async _renderMetas(porMedico) {
+  async _renderMetas(porMedico, anoMesAlvo) {
     const snap = await lerUmaVez(CAMINHOS.metas());
     const el = document.getElementById("fat-metas-progress");
     if (!el) return;
-    if (!snap) {
+    const todasMetas = snap ? Object.values(snap) : [];
+    if (todasMetas.length === 0) {
       el.innerHTML =
         '<p class="text-muted" style="font-size:.8rem">Nenhuma meta cadastrada.</p>';
       return;
     }
 
-    const metas = Object.values(snap);
+    // Uma meta "efetiva" por médico para o mês selecionado (carry-forward)
+    const nomes = [...new Set(todasMetas.map((m) => m.nome))];
+    const metas = nomes
+      .map((nome) => metaEfetiva(todasMetas, nome, anoMesAlvo))
+      .filter(Boolean);
     if (metas.length === 0) {
       el.innerHTML =
-        '<p class="text-muted" style="font-size:.8rem">Nenhuma meta cadastrada.</p>';
+        '<p class="text-muted" style="font-size:.8rem">Nenhuma meta cadastrada para este mês.</p>';
       return;
     }
 
