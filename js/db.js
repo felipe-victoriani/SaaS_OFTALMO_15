@@ -209,6 +209,36 @@ function metaEfetiva(metas, nome, anoMesAlvo) {
   return candidatos.length ? candidatos[candidatos.length - 1] : null;
 }
 
+/**
+ * Calcula o faturamento "realizado" por médico, atribuindo cada valor a
+ * quem efetivamente o gerou (cirurgião, auxiliar, instrumentador e
+ * recepção) — não tudo ao cirurgião da cirurgia. Usado como fonte única
+ * de verdade para comparar com metas (Admin › Metas, Relatório e
+ * Faturamento devem usar esta mesma função).
+ * @param {Array} honorariosLancados - registros de honorarios com lancado=true
+ * @param {Array} [recepcaoArr] - registros de recepção (coleção "pacientes") do período
+ * @returns {Object<string, number>} total por nome de médico
+ */
+function realizadoPorMedico(honorariosLancados, recepcaoArr = []) {
+  const totais = {};
+  const soma = (nome, valor) => {
+    if (!nome || nome === "—") return;
+    totais[nome] = (totais[nome] || 0) + (valor || 0);
+  };
+  (honorariosLancados || []).forEach((r) => {
+    soma(
+      r.nome_cirurgiao,
+      (r.honorario_cirurgiao_pf || 0) + (r.lio_parte_cirurgiao || 0),
+    );
+    soma(r.nome_auxiliar, r.honorario_auxiliar_pf || 0);
+    soma(r.nome_instrumentador, r.honorario_instrumentador_pf || 0);
+  });
+  (recepcaoArr || []).forEach((r) => {
+    soma(r.medico, parseFloat(r.valor) || 0);
+  });
+  return totais;
+}
+
 // ── Helpers de formatação ────────────────────────────────────────
 
 /**

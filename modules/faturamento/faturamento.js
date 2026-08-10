@@ -294,11 +294,13 @@ window.Modules.faturamento = {
     el.innerHTML = metas
       .map((m) => {
         const total = porMedico[m.nome] || {};
-        // ALTERAÇÃO 4: inclui receita da recepção no cálculo de progresso de meta
+        // CORRIGIDO: faltava somar "instrumentador" — deixava o "atual" da
+        // meta menor que o total realmente mostrado nos cards por médico
         const atual =
           (total.cirurgiao || 0) +
           (total.lio_cir || 0) +
           (total.auxiliar || 0) +
+          (total.instrumentador || 0) +
           (total.recepcao || 0);
         const meta = m.valor || 0;
         const pct =

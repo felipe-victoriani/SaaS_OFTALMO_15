@@ -388,31 +388,25 @@ window.Modules.admin = {
       year: "numeric",
     });
 
-    const [snap, honorariosArr] = await Promise.all([
+    const [snap, honorariosArr, recepcaoArr] = await Promise.all([
       lerUmaVez(CAMINHOS.metas()),
       buscarIntervalo("honorarios", inicio, fim),
+      buscarIntervalo("pacientes", inicio, fim),
     ]);
     const todasMetas = snap
       ? Object.entries(snap).map(([k, v]) => ({ _id: k, ...v }))
       : [];
 
-    // Realizado do mês por médico (mesmo cálculo do relatório: honorários PF lançados)
-    const realizadoPorMedico = {};
-    honorariosArr
-      .filter((r) => r.lancado)
-      .forEach((r) => {
-        const n = r.nome_cirurgiao || "Desconhecido";
-        realizadoPorMedico[n] =
-          (realizadoPorMedico[n] || 0) +
-          (r.honorario_cirurgiao_pf || 0) +
-          (r.lio_parte_cirurgiao || 0) +
-          (r.honorario_auxiliar_pf || 0) +
-          (r.honorario_instrumentador_pf || 0);
-      });
+    // Realizado do mês por médico: honorários (atribuídos a quem ganhou
+    // cada valor) + receita de recepção — mesma fonte usada no Faturamento
+    const realizadoMap = realizadoPorMedico(
+      honorariosArr.filter((r) => r.lancado),
+      recepcaoArr,
+    );
 
     const linhas = MEDICOS_METAS.map((nome) => {
       const efetiva = metaEfetiva(todasMetas, nome, anoMes);
-      const realizado = realizadoPorMedico[nome] || 0;
+      const realizado = realizadoMap[nome] || 0;
       const valorMeta = efetiva?.valor || 0;
       const propria = efetiva?.anoMes === anoMes;
       return { nome, efetiva, realizado, valorMeta, propria };
@@ -902,7 +896,9 @@ window.Modules.admin = {
           await Promise.all([
             buscarIntervalo("honorarios", inicio, fim),
             buscarIntervalo("cirurgias", inicio, fim),
-            buscarIntervalo("recepcao", inicio, fim),
+            // CORRIGIDO: a coleção de recepção é "pacientes" (era "recepcao",
+            // que não existe — kpiAtend e a meta com recepção ficavam zerados)
+            buscarIntervalo("pacientes", inicio, fim),
             lerUmaVez(CAMINHOS.metas()),
           ]);
 
@@ -998,10 +994,15 @@ window.Modules.admin = {
             (r.lio_parte_clinica || 0) + (r.valor_clinica_cnpj || 0);
         });
 
+        // Realizado por médico (honorários + recepção, atribuído a quem
+        // ganhou cada valor) — mesma fonte usada na aba Metas e no Faturamento
+        const realizadoMetas = realizadoPorMedico(lancados, recepcaoArr);
+
         // ── Função auxiliar: badge % meta ────────────────────────────
-        const badgeMeta = (nome, total) => {
+        const badgeMeta = (nome) => {
           const m = metaEfetiva(metas, nome, mesInput);
           if (!m || !m.valor) return "";
+          const total = realizadoMetas[nome] || 0;
           const pct = Math.min(100, Math.round((total / m.valor) * 100));
           const cor =
             pct >= 100 ? "#059669" : pct >= 70 ? "#d97706" : "#dc2626";
@@ -1086,7 +1087,7 @@ window.Modules.admin = {
                     : MEDICOS_SORTED.map((n) => {
                         const d = porMedico[n];
                         return `<tr>
-                        <td><strong>${n}</strong>${badgeMeta(n, d.total)}</td>
+                        <td><strong>${n}</strong>${badgeMeta(n)}</td>
                         <td class="table-number">${d.cirs}</td>
                         <td class="table-number" style="color:${d.pend > 0 ? "#d97706" : "inherit"}">${d.pend}</td>
                         <td class="table-number">${formatarMoeda(d.honPF)}</td>
