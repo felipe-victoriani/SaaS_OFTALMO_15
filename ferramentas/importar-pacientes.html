@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Importar pacientes (uso único)</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+        max-width: 640px;
+        margin: 3rem auto;
+        padding: 0 1.5rem;
+        color: #134e4a;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      .aviso {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        margin-bottom: 1.5rem;
+      }
+      #arquivo {
+        margin-bottom: 1rem;
+      }
+      button {
+        background: #0d9488;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      #login-form {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+      #login-form input {
+        flex: 1 1 200px;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #ccfbf1;
+        border-radius: 8px;
+        font-size: 0.9rem;
+      }
+      #login-erro {
+        color: #b91c1c;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+      }
+      #area-importacao[hidden],
+      #login-form[hidden],
+      #login-erro[hidden] {
+        display: none;
+      }
+      #usuario-logado {
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+      }
+      #log {
+        margin-top: 1.5rem;
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1rem;
+        min-height: 3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Importar lista de pacientes (uso único)</h1>
+    <p class="aviso">
+      Ferramenta interna, uso único. O arquivo é lido só no seu navegador —
+      nada é enviado a lugar nenhum além do Firebase do sistema. Feche/apague
+      esta página depois de importar.
+    </p>
+    <form id="login-form">
+      <input
+        type="email"
+        id="login-email"
+        placeholder="seu@email.com"
+        autocomplete="email"
+        required
+      />
+      <input
+        type="password"
+        id="login-senha"
+        placeholder="Senha"
+        autocomplete="current-password"
+        required
+      />
+      <button type="submit" id="btn-login">Entrar</button>
+    </form>
+    <p id="login-erro" hidden></p>
+
+    <div id="area-importacao" hidden>
+      <p id="usuario-logado"></p>
+      <input type="file" id="arquivo" accept=".csv" />
+      <br />
+      <button id="btn-importar" disabled>Importar</button>
+      <div id="log"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="../firebase-config.js"></script>
+    <script src="importar-pacientes.js"></script>
+  </body>
+</html>

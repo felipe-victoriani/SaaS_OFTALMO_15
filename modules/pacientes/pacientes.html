@@ -1,0 +1,56 @@
+<div class="page-content">
+  <div class="module-header">
+    <h1 class="module-title">
+      <i data-lucide="id-card" width="24" height="24" aria-hidden="true"></i>
+      Lista de Pacientes
+    </h1>
+    <p class="module-subtitle">
+      Busque um paciente pelo nome ou CPF na base importada
+    </p>
+  </div>
+
+  <div class="filter-bar mb-2">
+    <input
+      type="text"
+      id="pac-busca"
+      class="filter-input"
+      placeholder="Buscar por nome ou CPF…"
+      aria-label="Buscar paciente"
+      autocomplete="off"
+    />
+  </div>
+
+  <p id="pac-status" class="text-muted" style="font-size: 0.85rem"></p>
+
+  <div class="table-container">
+    <div class="table-toolbar">
+      <span class="table-toolbar-title">Resultados</span>
+    </div>
+    <div class="table-scroll table-mobile-cards">
+      <table
+        class="data-table"
+        id="tabela-pacientes"
+        aria-label="Pacientes cadastrados"
+      >
+        <thead>
+          <tr>
+            <th scope="col">Nº</th>
+            <th scope="col">Nome</th>
+            <th scope="col">CPF</th>
+            <th scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-pacientes">
+          <tr>
+            <td colspan="4">
+              <div class="loading-wrapper">
+                <div class="spinner"></div>
+                Carregando...
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

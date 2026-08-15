@@ -40,6 +40,8 @@ const CAMINHOS = {
   movimentacao: (id) => `movimentacoes_estoque/${id}`,
   fornecedores: () => "fornecedores",
   fornecedor: (id) => `fornecedores/${id}`,
+  pacientesCadastro: () => "pacientes_cadastro",
+  pacienteCadastro: (id) => `pacientes_cadastro/${id}`,
   campanhas: () => "campanhas",
   campanha: (id) => `campanhas/${id}`,
   campanhaContatos: (campanhaId) => `campanhas/${campanhaId}/contatos`,
@@ -63,11 +65,20 @@ async function lerUmaVez(caminho) {
  * Escuta um nó em tempo real.
  * @param {string} caminho
  * @param {Function} callback - chamado com o valor atualizado
+ * @param {Function} [onError] - chamado se a leitura falhar (ex: permissão negada);
+ *   sem isso, uma falha fica silenciosa e a tela trava no estado de "carregando"
  * @returns {Function} função para cancelar a escuta
  */
-function escutar(caminho, callback) {
+function escutar(caminho, callback, onError) {
   const ref = db.ref(caminho);
-  ref.on("value", (snap) => callback(snap.val()));
+  ref.on(
+    "value",
+    (snap) => callback(snap.val()),
+    (err) => {
+      console.error(`[escutar] Erro em "${caminho}":`, err);
+      if (onError) onError(err);
+    },
+  );
   return () => ref.off("value");
 }
 

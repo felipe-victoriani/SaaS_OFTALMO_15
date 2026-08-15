@@ -4,3 +4,6 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Dados sensíveis / uso local — nunca deployar (assets é servido publicamente)
+assets/

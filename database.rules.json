@@ -36,6 +36,10 @@
       ".read": "auth != null && (root.child('usuarios').child(auth.uid).child('isAdmin').val() === true || root.child('usuarios').child(auth.uid).child('permissoes').child('fornecedores').val() === true)",
       ".write": "auth != null && (root.child('usuarios').child(auth.uid).child('isAdmin').val() === true || root.child('usuarios').child(auth.uid).child('permissoes').child('fornecedores').val() === true)"
     },
+    "pacientes_cadastro": {
+      ".read": "auth != null && (root.child('usuarios').child(auth.uid).child('isAdmin').val() === true || root.child('usuarios').child(auth.uid).child('permissoes').child('recepcao').val() === true)",
+      ".write": "auth != null && (root.child('usuarios').child(auth.uid).child('isAdmin').val() === true || root.child('usuarios').child(auth.uid).child('permissoes').child('recepcao').val() === true)"
+    },
     "campanhas": {
       ".read": "auth != null && (root.child('usuarios').child(auth.uid).child('isAdmin').val() === true || root.child('usuarios').child(auth.uid).child('permissoes').child('marketing').val() === true)",
       ".write": "auth != null && (root.child('usuarios').child(auth.uid).child('isAdmin').val() === true || root.child('usuarios').child(auth.uid).child('permissoes').child('marketing').val() === true)"

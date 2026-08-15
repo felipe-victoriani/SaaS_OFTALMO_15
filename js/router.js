@@ -12,6 +12,7 @@ const MODULOS_VALIDOS = [
   "estoque",
   "fornecedores",
   "marketing",
+  "pacientes",
   "admin",
 ];
 

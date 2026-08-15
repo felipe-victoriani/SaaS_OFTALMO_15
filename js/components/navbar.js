@@ -55,6 +55,12 @@ const MODULOS_NAV = [
     icone: "megaphone",
     permissao: "marketing",
   },
+  {
+    id: "pacientes",
+    label: "Lista de Pacientes",
+    icone: "id-card",
+    permissao: "recepcao",
+  },
 ];
 
 const ADMIN_NAV = { id: "admin", label: "Administração", icone: "settings" };
