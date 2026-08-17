@@ -34,7 +34,18 @@
   </head>
   <body>
     <div class="login-split">
-      <div class="login-photo" aria-hidden="true"></div>
+      <video
+        class="login-photo"
+        aria-hidden="true"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+      >
+        <source src="img/login-bg.webm" type="video/webm" />
+        <source src="img/login-bg.mp4" type="video/mp4" />
+      </video>
       <main class="login-page">
       <div class="login-container">
         <!-- Marca -->

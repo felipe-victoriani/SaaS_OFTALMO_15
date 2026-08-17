@@ -3,18 +3,9 @@
    ================================================================ */
 :root {
   --accent: #0d9488;
-  --accent-hover: #0f766e;
-  --bg: #f0fdfa;
-  --card-bg: #ffffff;
-  --text: #134e4a;
-  --text-muted: #64748b;
-  --border: #ccfbf1;
-  --danger: #ef4444;
-  --input-bg: #ffffff;
+  --text: #f0fdfa;
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --radius: 10px;
-  --shadow:
-    0 16px 60px rgba(13, 148, 136, 0.12), 0 0 0 1px rgba(13, 148, 136, 0.1);
 }
 
 *,
@@ -45,7 +36,9 @@ body {
 .login-photo {
   position: fixed;
   inset: 0;
-  background: url("../img/logo_3.jpeg") center center / cover no-repeat;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   z-index: 0;
 }
 
@@ -67,8 +60,8 @@ body {
   padding: 2rem 6vw;
 }
 
-/* Painel translúcido atrás do formulário — deixa a maior parte da
-   fachada visível e só esmaece perto de onde o card fica */
+/* Painel escuro translúcido atrás do formulário — combina com o tom
+   azul-marinho do vídeo e só esmaece perto de onde o card fica */
 .login-page::before {
   content: "";
   position: absolute;
@@ -76,10 +69,11 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    transparent 30%,
-    rgba(240, 253, 250, 0.55) 50%,
-    var(--bg) 68%,
-    var(--bg) 100%
+    transparent 25%,
+    rgba(6, 20, 24, 0.55) 45%,
+    rgba(6, 20, 24, 0.88) 62%,
+    #06171a 78%,
+    #06171a 100%
   );
 }
 
@@ -89,7 +83,7 @@ body {
     padding: 1rem;
   }
   .login-page::before {
-    background: var(--bg);
+    background: #06171a;
   }
 }
 
@@ -137,38 +131,42 @@ body {
 .login-title {
   font-size: 1.375rem;
   font-weight: 700;
-  color: #134e4a;
+  color: #f0fdfa;
   line-height: 1.2;
 }
 
 .login-subtitle {
   font-size: 0.78rem;
-  color: rgba(71, 85, 105, 0.75);
+  color: rgba(240, 253, 250, 0.65);
   margin-top: 0.125rem;
 }
 
-/* ── Card ───────────────────────────────────────────────────── */
+/* ── Card (vidro fosco sobre o vídeo) ─────────────────────────── */
 .login-card {
-  background: var(--card-bg);
-  border: 1px solid rgba(13, 148, 136, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--radius);
   padding: 2rem;
-  box-shadow: var(--shadow);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .card-heading {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #134e4a;
+  color: #f0fdfa;
   margin-bottom: 1.5rem;
 }
 
 /* ── Error banner ───────────────────────────────────────────── */
 .error-banner {
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.4);
   border-radius: 8px;
-  color: #b91c1c;
+  color: #fca5a5;
   font-size: 0.875rem;
   padding: 0.65rem 1rem;
   margin-bottom: 1rem;
@@ -188,17 +186,17 @@ body {
   display: block;
   font-size: 0.8rem;
   font-weight: 500;
-  color: #0f766e;
+  color: #5eead4;
   margin-bottom: 0.375rem;
 }
 
 .field-input {
   width: 100%;
   padding: 0.625rem 0.875rem;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(13, 148, 136, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
-  color: #134e4a;
+  color: #f0fdfa;
   font-size: 0.9375rem;
   font-family: var(--font-sans);
   transition:
@@ -209,15 +207,15 @@ body {
 
 .field-input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: #2dd4bf;
   box-shadow:
-    0 0 0 3px rgba(13, 148, 136, 0.15),
-    0 0 18px rgba(13, 148, 136, 0.08);
-  background: #ffffff;
+    0 0 0 3px rgba(45, 212, 191, 0.25),
+    0 0 18px rgba(45, 212, 191, 0.12);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .field-input::placeholder {
-  color: rgba(71, 85, 105, 0.45);
+  color: rgba(240, 253, 250, 0.35);
 }
 
 /* ── Submit button ──────────────────────────────────────────── */
@@ -291,11 +289,11 @@ body {
   text-align: center;
   margin-top: 1.5rem;
   font-size: 0.78rem;
-  color: rgba(71, 85, 105, 0.6);
+  color: rgba(240, 253, 250, 0.55);
 }
 
 .login-footer a {
-  color: var(--accent);
+  color: #5eead4;
   text-decoration: none;
 }
 .login-footer a:hover {
@@ -305,7 +303,7 @@ body {
   text-align: center;
   margin-top: 0.75rem;
   font-size: 0.72rem;
-  color: rgba(71, 85, 105, 0.4);
+  color: rgba(240, 253, 250, 0.32);
 }
 
 /* ── Password wrapper & toggle ──────────────────────────────── */
@@ -323,7 +321,7 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  color: rgba(71, 85, 105, 0.5);
+  color: rgba(240, 253, 250, 0.5);
   padding: 0;
   display: flex;
   align-items: center;
@@ -331,10 +329,10 @@ body {
   transition: color 0.15s;
 }
 .toggle-senha:hover {
-  color: rgba(19, 78, 74, 0.9);
+  color: rgba(240, 253, 250, 0.95);
 }
 .toggle-senha:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid #2dd4bf;
   border-radius: 4px;
 }
 
@@ -342,7 +340,7 @@ body {
 .caps-lock-warning {
   margin-top: 0.35rem;
   font-size: 0.75rem;
-  color: #b45309;
+  color: #fbbf24;
 }
 
 /* ── Form extras (lembrar + esqueci) ───────────────────────── */
@@ -358,30 +356,30 @@ body {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.8rem;
-  color: rgba(71, 85, 105, 0.65);
+  color: rgba(240, 253, 250, 0.65);
   cursor: pointer;
   user-select: none;
 }
 .remember-check {
-  accent-color: var(--accent);
+  accent-color: #2dd4bf;
   width: 14px;
   height: 14px;
   cursor: pointer;
 }
 .link-forgot {
   font-size: 0.8rem;
-  color: #0f766e;
+  color: #5eead4;
   text-decoration: none;
   transition: color 0.15s;
 }
 .link-forgot:hover {
-  color: #115e59;
+  color: #99f6e4;
   text-decoration: underline;
 }
 
 /* ── Success banner ─────────────────────────────────────────── */
 .success-banner {
-  background: rgba(74, 222, 128, 0.1) !important;
-  border-color: rgba(74, 222, 128, 0.35) !important;
-  color: #15803d !important;
+  background: rgba(74, 222, 128, 0.16) !important;
+  border-color: rgba(134, 239, 172, 0.4) !important;
+  color: #86efac !important;
 }
