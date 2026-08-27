@@ -57,6 +57,12 @@ html {
 body {
   font-family: var(--font-sans);
   background-color: var(--bg-primary);
+  background-image: radial-gradient(
+    circle,
+    rgba(37, 99, 235, 0.07) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
   color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
