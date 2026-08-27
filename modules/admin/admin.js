@@ -132,6 +132,7 @@ window.Modules.admin = {
     const usuarios = snap
       ? Object.entries(snap).map(([uid, d]) => ({ uid, ...d }))
       : [];
+    this._sincronizarDiretorio(usuarios);
 
     const MODULOS_PERM = [
       "recepcao",
@@ -301,6 +302,7 @@ window.Modules.admin = {
           isAdmin: admin,
           permissoes,
         });
+        await atualizar(CAMINHOS.diretorioUsuario(uid), { nome });
         Alerts.sucesso("Usuário atualizado!");
       } else {
         if (senha.length < 6) {
@@ -348,6 +350,7 @@ window.Modules.admin = {
           isAdmin: admin,
           permissoes,
         });
+        await atualizar(CAMINHOS.diretorioUsuario(novoUid), { nome });
         Alerts.sucesso("Usuário criado com sucesso!");
       }
       Modal.fecharModal();
@@ -375,6 +378,24 @@ window.Modules.admin = {
       },
       "Confirmar Exclusão de Conta",
     );
+  },
+
+  // Preenche o diretório (nome público, usado pelo chat) para usuários
+  // criados antes dessa coleção existir — roda toda vez que a aba abre,
+  // mas só grava quem realmente está faltando.
+  async _sincronizarDiretorio(usuarios) {
+    try {
+      const dirSnap = await lerUmaVez(CAMINHOS.diretorio());
+      const existentes = dirSnap || {};
+      const faltando = usuarios.filter((u) => !existentes[u.uid]);
+      await Promise.all(
+        faltando.map((u) =>
+          atualizar(CAMINHOS.diretorioUsuario(u.uid), { nome: u.nome }),
+        ),
+      );
+    } catch (err) {
+      console.warn("[admin] Falha ao sincronizar diretório:", err);
+    }
   },
 
   // ---- ABA: METAS ----

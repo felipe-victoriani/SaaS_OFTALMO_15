@@ -47,6 +47,13 @@ const CAMINHOS = {
   campanhaContatos: (campanhaId) => `campanhas/${campanhaId}/contatos`,
   campanhaContato: (campanhaId, id) => `campanhas/${campanhaId}/contatos/${id}`,
   auditoria: () => "auditoria",
+  diretorio: () => "diretorio",
+  diretorioUsuario: (uid) => `diretorio/${uid}`,
+  conversas: () => "conversas",
+  conversa: (id) => `conversas/${id}`,
+  mensagens: (conversaId) => `mensagens/${conversaId}`,
+  inbox: () => "inbox",
+  inboxConversa: (uid, conversaId) => `inbox/${uid}/${conversaId}`,
 };
 
 // ── CRUD Genérico ───────────────────────────────────────────────
@@ -198,6 +205,17 @@ async function registrarAuditoria(acao, modulo, registroId, dadosAnteriores) {
     // Auditoria não deve quebrar o fluxo principal
     console.warn("[auditoria] Falha ao registrar:", err);
   }
+}
+
+/**
+ * Gera um ID determinístico para a conversa 1:1 entre dois usuários,
+ * independente da ordem em que os UIDs são passados.
+ * @param {string} uidA
+ * @param {string} uidB
+ * @returns {string}
+ */
+function idConversa(uidA, uidB) {
+  return [uidA, uidB].sort().join("_");
 }
 
 // ── Metas por médico/mês ─────────────────────────────────────────

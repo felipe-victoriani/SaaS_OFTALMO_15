@@ -225,6 +225,7 @@
     <script src="js/components/alerts.js"></script>
     <script src="js/components/modal.js"></script>
     <script src="js/components/navbar.js"></script>
+    <script src="js/components/chat.js"></script>
 
     <!-- ===== RELATÓRIOS ===== -->
     <script src="js/relatorios/relatorio-recepcao.js"></script>
@@ -264,6 +265,9 @@
 
         // Inicializar roteamento
         initRouter(document.getElementById("main-content"));
+
+        // Chat 1:1 entre usuários (widget flutuante, persiste entre navegações)
+        Chat.iniciar();
 
         // Verificar vencimentos (com pequeno atraso para não sobrepor o carregamento)
         setTimeout(() => {

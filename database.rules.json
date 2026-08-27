@@ -47,6 +47,35 @@
     "auditoria": {
       ".read": "auth != null && root.child('usuarios').child(auth.uid).child('isAdmin').val() === true",
       ".write": "auth != null"
+    },
+    "diretorio": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && root.child('usuarios').child(auth.uid).child('isAdmin').val() === true"
+      }
+    },
+    "conversas": {
+      "$conversaId": {
+        ".read": "auth != null && $conversaId.contains(auth.uid) && (!data.exists() || data.child('participantes').child(auth.uid).exists())",
+        ".write": "auth != null && $conversaId.contains(auth.uid) && (!data.exists() || data.child('participantes').child(auth.uid).exists())"
+      }
+    },
+    "mensagens": {
+      "$conversaId": {
+        ".read": "auth != null && root.child('conversas').child($conversaId).child('participantes').child(auth.uid).exists()",
+        "$mensagemId": {
+          ".write": "auth != null && root.child('conversas').child($conversaId).child('participantes').child(auth.uid).exists() && (newData.exists() ? newData.child('remetente').val() === auth.uid : data.child('remetente').val() === auth.uid)",
+          ".validate": "newData.hasChildren(['remetente', 'texto', 'criado_em'])"
+        }
+      }
+    },
+    "inbox": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$conversaId": {
+          ".write": "auth != null && root.child('conversas').child($conversaId).child('participantes').child(auth.uid).exists()"
+        }
+      }
     }
   }
 }
