@@ -24,8 +24,8 @@ window.Modules.laudos = {
    */
   _solicitarNomeEImprimir() {
     Modal.abrirModal({
-      titulo: "Imprimir Laudo CASSEMS",
-      icone: "printer",
+      titulo: "Gerar Laudo CASSEMS (PDF)",
+      icone: "file-down",
       tamanho: "sm",
       corpo: `
         <div class="form-group">
@@ -50,10 +50,10 @@ window.Modules.laudos = {
           onClick: () => Modal.fecharModal(),
         },
         {
-          label: "Gerar e Imprimir",
+          label: "Gerar PDF",
           classe: "btn-primary",
           id: "laudo-confirmar",
-          icone: "printer",
+          icone: "file-down",
           onClick: () => this._confirmarImpressao(),
         },
       ],
@@ -78,17 +78,18 @@ window.Modules.laudos = {
       return;
     }
     Modal.fecharModal();
-    this._imprimirCassems(nome);
+    this._gerarPdfCassems(nome);
   },
 
   /**
-   * Monta o formulário CASSEMS numa área fora do #app-shell (para não
-   * disputar CSS de impressão com o layout do sistema) e dispara
-   * window.print(). A área é removida assim que a impressão termina ou
-   * é cancelada (evento afterprint), então nunca fica "presa" no DOM.
+   * Monta o formulário CASSEMS numa área fora da tela (para não aparecer
+   * na interface) e usa jsPDF + html2canvas para gerar um arquivo PDF de
+   * verdade, que é baixado diretamente — sem passar por window.print().
+   * Isso evita o cabeçalho/rodapé padrão do navegador (que mostraria a
+   * URL do app, ex: 127.0.0.1:5500/app.html) na folha impressa.
    * @param {string} nomePaciente
    */
-  _imprimirCassems(nomePaciente) {
+  async _gerarPdfCassems(nomePaciente) {
     const dataHoje = new Date().toLocaleDateString("pt-BR");
 
     document.getElementById("laudo-print-area")?.remove();
@@ -98,14 +99,36 @@ window.Modules.laudos = {
     area.innerHTML = this._templateCassems(nomePaciente, dataHoje);
     document.body.appendChild(area);
 
-    const limpar = () => {
-      area.remove();
-      window.removeEventListener("afterprint", limpar);
-    };
-    window.addEventListener("afterprint", limpar);
+    const folha = area.querySelector(".cassems-folha");
 
-    // Pequeno atraso para garantir que o navegador pintou o layout antes do print.
-    setTimeout(() => window.print(), 50);
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const margemMm = 10;
+      const larguraMm = doc.internal.pageSize.getWidth() - margemMm * 2;
+
+      await doc.html(folha, {
+        x: margemMm,
+        y: margemMm,
+        width: larguraMm,
+        windowWidth: 800,
+        autoPaging: "text",
+      });
+
+      const nomeArquivo = `laudo_cassems_${nomePaciente
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, "_")}_${hoje()}`;
+      doc.save(`${nomeArquivo}.pdf`);
+      Alerts.sucesso("PDF do laudo gerado com sucesso!");
+    } catch (err) {
+      console.error("[laudos] Erro ao gerar PDF:", err);
+      Alerts.erro("Erro ao gerar o PDF do laudo. Verifique o console.");
+    } finally {
+      area.remove();
+    }
   },
 
   /**

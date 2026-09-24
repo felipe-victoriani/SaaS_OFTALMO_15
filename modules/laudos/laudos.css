@@ -14,13 +14,17 @@
   margin-top: 0.75rem;
 }
 
-/* === Impressão: área injetada fora do #app-shell ================ */
-/* Fica invisível em tela; só aparece durante window.print(). */
+/* === Geração de PDF: área renderizada fora da tela =============== */
+/* Fica fora da viewport (não usa display:none) para que o html2canvas
+   consiga capturar o layout normalmente ao montar o PDF com jsPDF. */
 #laudo-print-area {
-  display: none;
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  width: 800px;
 }
 
-/* === Formulário CASSEMS — layout visível apenas na impressão ==== */
+/* === Formulário CASSEMS — layout capturado para o PDF =========== */
 .cassems-folha {
   font-family: var(--font-sans);
   color: #111;
@@ -190,31 +194,4 @@
   border-top: 1px solid #ccc;
   padding-top: 0.4rem;
   margin: 0;
-}
-
-/* === Regras de impressão ======================================= */
-@media print {
-  @page {
-    size: A4;
-    margin: 12mm;
-  }
-
-  /* Esconde toda a interface do sistema (sidebar, topbar, toasts, modal)
-     e mostra somente o formulário injetado em #laudo-print-area. */
-  body * {
-    visibility: hidden;
-  }
-
-  #laudo-print-area,
-  #laudo-print-area * {
-    visibility: visible;
-  }
-
-  #laudo-print-area {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-  }
 }
