@@ -219,6 +219,7 @@ window.Modules.admin = {
         "estoque",
         "fornecedores",
         "marketing",
+        "laudos",
       ];
       Modal.abrirModal({
         titulo: uid ? "Editar Usuário" : "Novo Usuário",

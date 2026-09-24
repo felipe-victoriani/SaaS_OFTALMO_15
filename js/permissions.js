@@ -61,6 +61,7 @@ function modulosPermitidos() {
       "estoque",
       "fornecedores",
       "marketing",
+      "laudos",
       "admin",
     ];
   }
@@ -76,6 +77,7 @@ function modulosPermitidos() {
     estoque: "estoque",
     fornecedores: "fornecedores",
     marketing: "marketing",
+    laudos: "laudos",
   };
 
   return Object.entries(mapa)

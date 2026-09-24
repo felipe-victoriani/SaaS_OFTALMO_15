@@ -3,8 +3,8 @@
 // ================================================================
 "use strict";
 
-const CACHE_NAME = "oftalmo15-v19";
-const CACHE_STATIC = "oftalmo15-static-v19";
+const CACHE_NAME = "oftalmo15-v20";
+const CACHE_STATIC = "oftalmo15-static-v20";
 
 // Assets para cache imediato (Cache First)
 const STATIC_ASSETS = [
@@ -33,6 +33,7 @@ const STATIC_ASSETS = [
   "/modules/fornecedores/fornecedores.js",
   "/modules/marketing/marketing.js",
   "/modules/pacientes/pacientes.js",
+  "/modules/laudos/laudos.js",
   "/modules/admin/admin.js",
   "/manifest.json",
 ];

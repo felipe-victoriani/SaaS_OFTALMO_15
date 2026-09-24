@@ -1,0 +1,220 @@
+/* ================================================================
+ * modules/laudos/laudos.css — Módulo Laudos + impressão CASSEMS
+ * ================================================================ */
+
+/* === Tela: card de listagem de modelos ========================= */
+.laudo-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.laudo-card-acoes {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.75rem;
+}
+
+/* === Impressão: área injetada fora do #app-shell ================ */
+/* Fica invisível em tela; só aparece durante window.print(). */
+#laudo-print-area {
+  display: none;
+}
+
+/* === Formulário CASSEMS — layout visível apenas na impressão ==== */
+.cassems-folha {
+  font-family: var(--font-sans);
+  color: #111;
+  font-size: 10pt;
+  line-height: 1.35;
+}
+
+.cassems-cabecalho {
+  text-align: center;
+  margin-bottom: 0.6rem;
+  border-bottom: 2px solid #111;
+  padding-bottom: 0.5rem;
+}
+
+.cassems-marca {
+  font-size: 15pt;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+.cassems-marca-sub {
+  font-size: 7.5pt;
+  color: #333;
+  margin: 0.1rem 0 0.5rem;
+}
+
+.cassems-titulo {
+  font-size: 11pt;
+  font-weight: 600;
+  margin: 0;
+}
+
+.cassems-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.5rem;
+}
+
+.cassems-tabela td,
+.cassems-tabela th {
+  border: 1px solid #111;
+  padding: 0.3rem 0.5rem;
+  vertical-align: middle;
+}
+
+.cassems-tabela-topo .cassems-td-rotulo {
+  font-weight: 600;
+  width: 22%;
+  background: #f0fdfa;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.cassems-tabela-topo .cassems-td-rotulo-estreito {
+  width: 12%;
+}
+
+.cassems-tabela-topo .cassems-td-valor {
+  width: 28%;
+}
+
+.cassems-tabela-hipoteses thead th {
+  background: #f0fdfa;
+  text-align: left;
+  font-size: 10.5pt;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.cassems-td-label {
+  width: 72%;
+}
+
+.cassems-td-simnao {
+  width: 28%;
+  white-space: nowrap;
+}
+
+.cassems-td-outras p {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+}
+
+.cassems-linha-preenchimento {
+  border-bottom: 1px solid #999;
+  height: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+
+.cassems-tabela-pergunta .cassems-td-pergunta {
+  text-align: center;
+  background: #f0fdfa;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.cassems-pergunta-titulo {
+  margin: 0;
+  font-weight: 600;
+}
+
+.cassems-pergunta-opcoes {
+  margin: 0.2rem 0 0;
+}
+
+.cassems-td-detalhe p {
+  margin: 0 0 0.3rem;
+}
+
+.cassems-td-detalhe p:last-child {
+  margin-bottom: 0;
+}
+
+.cassems-linha-curta {
+  display: inline-block;
+  min-width: 5.5rem;
+  border-bottom: 1px solid #999;
+  margin: 0 0.25rem;
+}
+
+.cassems-obs {
+  font-size: 8.5pt;
+  font-style: italic;
+  margin: 0 0 1.4rem;
+}
+
+.cassems-rodape {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.cassems-rodape-data {
+  margin: 0;
+  font-weight: 600;
+}
+
+.cassems-assinatura {
+  width: 15rem;
+  text-align: center;
+}
+
+.cassems-linha-assinatura {
+  border-bottom: 1px solid #111;
+  height: 2.4rem;
+}
+
+.cassems-carimbo-nome {
+  margin: 0.3rem 0 0;
+  font-size: 9pt;
+  font-weight: 600;
+}
+
+.cassems-carimbo-info {
+  margin: 0.05rem 0 0;
+  font-size: 8pt;
+  color: #333;
+}
+
+.cassems-endereco {
+  text-align: center;
+  font-size: 7.5pt;
+  color: #333;
+  border-top: 1px solid #ccc;
+  padding-top: 0.4rem;
+  margin: 0;
+}
+
+/* === Regras de impressão ======================================= */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  /* Esconde toda a interface do sistema (sidebar, topbar, toasts, modal)
+     e mostra somente o formulário injetado em #laudo-print-area. */
+  body * {
+    visibility: hidden;
+  }
+
+  #laudo-print-area,
+  #laudo-print-area * {
+    visibility: visible;
+  }
+
+  #laudo-print-area {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+}

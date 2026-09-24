@@ -61,6 +61,12 @@ const MODULOS_NAV = [
     icone: "id-card",
     permissao: "recepcao",
   },
+  {
+    id: "laudos",
+    label: "Laudos",
+    icone: "file-text",
+    permissao: "laudos",
+  },
 ];
 
 const ADMIN_NAV = { id: "admin", label: "Administração", icone: "settings" };
