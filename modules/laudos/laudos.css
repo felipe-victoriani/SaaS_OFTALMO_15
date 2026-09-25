@@ -14,6 +14,53 @@
   margin-top: 0.75rem;
 }
 
+/* === Modal: checklist Sim/Não das hipóteses diagnósticas ========= */
+.laudo-checklist {
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius);
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.laudo-simnao-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.laudo-simnao-row:last-child {
+  border-bottom: none;
+}
+
+.laudo-simnao-label {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.laudo-simnao-opcoes {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-shrink: 0;
+}
+
+.laudo-simnao-opcoes label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.laudo-simnao-opcoes input[type="radio"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 /* === Geração de PDF: área renderizada fora da tela =============== */
 /* Fica fora da viewport (não usa display:none) para que o html2canvas
    consiga capturar o layout normalmente ao montar o PDF com jsPDF. */
@@ -170,21 +217,12 @@
   text-align: center;
 }
 
-.cassems-linha-assinatura {
-  border-bottom: 1px solid #111;
-  height: 2.4rem;
-}
-
-.cassems-carimbo-nome {
-  margin: 0.3rem 0 0;
-  font-size: 9pt;
-  font-weight: 600;
-}
-
-.cassems-carimbo-info {
-  margin: 0.05rem 0 0;
-  font-size: 8pt;
-  color: #333;
+.cassems-assinatura-img {
+  max-width: 100%;
+  height: auto;
+  max-height: 5.5rem;
+  display: block;
+  margin: 0 auto;
 }
 
 .cassems-endereco {

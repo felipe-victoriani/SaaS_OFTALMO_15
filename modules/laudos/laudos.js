@@ -4,6 +4,20 @@
 
 window.Modules = window.Modules || {};
 
+// Hipóteses diagnósticas do formulário CASSEMS, na ordem impressa no PDF.
+const HIPOTESES_CASSEMS = [
+  "Retinopatia Diabética",
+  "Degeneração Macular Relacionada à Idade (DMRI)",
+  "Oclusão Venosa Retiniana",
+  "Distrofias",
+  "Membrana Epirretiniana",
+  "Membrana Neovascular Sub-Retiniana",
+  "Edema Macular",
+  "Buraco Macular",
+  "Diagnóstico Confirmado de Glaucoma",
+  "Afinamento do Anel Neural",
+];
+
 window.Modules.laudos = {
   mount(container) {
     if (!exigirPermissao("laudos", container)) return;
@@ -23,10 +37,21 @@ window.Modules.laudos = {
    * gerar a impressão do formulário CASSEMS.
    */
   _solicitarNomeEImprimir() {
+    const linhasHipoteses = HIPOTESES_CASSEMS.map(
+      (h, i) => `
+        <div class="laudo-simnao-row">
+          <span class="laudo-simnao-label">${escapeHtml(h)}</span>
+          <span class="laudo-simnao-opcoes">
+            <label><input type="radio" name="hip-resp-${i}" value="sim" /> Sim</label>
+            <label><input type="radio" name="hip-resp-${i}" value="nao" /> Não</label>
+          </span>
+        </div>`,
+    ).join("");
+
     Modal.abrirModal({
       titulo: "Gerar Laudo CASSEMS (PDF)",
       icone: "file-down",
-      tamanho: "sm",
+      tamanho: "lg",
       corpo: `
         <div class="form-group">
           <label class="form-label required" for="laudo-nome-paciente">
@@ -40,6 +65,27 @@ window.Modules.laudos = {
             autocomplete="off"
             required
           />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Hipótese Diagnóstica</label>
+          <div class="laudo-checklist">${linhasHipoteses}</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Suspeita de Glaucoma?</label>
+          <span class="laudo-simnao-opcoes">
+            <label><input type="radio" name="glaucoma-resp" value="sim" /> Sim</label>
+            <label><input type="radio" name="glaucoma-resp" value="nao" /> Não</label>
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Hipertensão Ocular?</label>
+          <span class="laudo-simnao-opcoes">
+            <label><input type="radio" name="hipertensao-resp" value="sim" /> Sim</label>
+            <label><input type="radio" name="hipertensao-resp" value="nao" /> Não</label>
+          </span>
         </div>
       `,
       botoes: [
@@ -77,8 +123,19 @@ window.Modules.laudos = {
       input?.focus();
       return;
     }
+
+    const respostas = {
+      hipoteses: HIPOTESES_CASSEMS.map((_, i) => {
+        const marcado = document.querySelector(`input[name="hip-resp-${i}"]:checked`);
+        return marcado ? marcado.value : null;
+      }),
+      glaucoma: document.querySelector('input[name="glaucoma-resp"]:checked')?.value || null,
+      hipertensao:
+        document.querySelector('input[name="hipertensao-resp"]:checked')?.value || null,
+    };
+
     Modal.fecharModal();
-    this._gerarPdfCassems(nome);
+    this._gerarPdfCassems(nome, respostas);
   },
 
   /**
@@ -88,15 +145,16 @@ window.Modules.laudos = {
    * Isso evita o cabeçalho/rodapé padrão do navegador (que mostraria a
    * URL do app, ex: 127.0.0.1:5500/app.html) na folha impressa.
    * @param {string} nomePaciente
+   * @param {{hipoteses: (string|null)[], glaucoma: string|null, hipertensao: string|null}} respostas
    */
-  async _gerarPdfCassems(nomePaciente) {
+  async _gerarPdfCassems(nomePaciente, respostas) {
     const dataHoje = new Date().toLocaleDateString("pt-BR");
 
     document.getElementById("laudo-print-area")?.remove();
 
     const area = document.createElement("div");
     area.id = "laudo-print-area";
-    area.innerHTML = this._templateCassems(nomePaciente, dataHoje);
+    area.innerHTML = this._templateCassems(nomePaciente, dataHoje, respostas);
     document.body.appendChild(area);
 
     const folha = area.querySelector(".cassems-folha");
@@ -132,38 +190,37 @@ window.Modules.laudos = {
   },
 
   /**
-   * HTML do formulário CASSEMS, fiel ao modelo oficial em PDF.
-   * Nome do paciente e data vêm preenchidos; o restante fica em branco
-   * para o médico preencher manualmente após a impressão.
-   * @param {string} nomePaciente
-   * @param {string} dataHoje - já formatada como DD/MM/AAAA
+   * Monta o par "( X) Sim  ( ) Não" já marcado conforme a resposta escolhida
+   * no modal. Sem resposta, sai igual ao formulário em branco original.
+   * @param {string|null} resposta - "sim" | "nao" | null
+   * @param {string} espacamento - HTML entre as duas opções
    * @returns {string}
    */
-  _templateCassems(nomePaciente, dataHoje) {
+  _marcarSimNao(resposta, espacamento = "&nbsp;") {
+    const marcaSim = resposta === "sim" ? "<strong>X</strong>" : "&nbsp;";
+    const marcaNao = resposta === "nao" ? "<strong>X</strong>" : "&nbsp;";
+    return `( ${marcaSim}) Sim ${espacamento} ( ${marcaNao}) Não`;
+  },
+
+  /**
+   * HTML do formulário CASSEMS, fiel ao modelo oficial em PDF.
+   * Nome do paciente, data e as respostas Sim/Não escolhidas no modal já
+   * saem marcadas; o restante fica em branco para preenchimento manual.
+   * @param {string} nomePaciente
+   * @param {string} dataHoje - já formatada como DD/MM/AAAA
+   * @param {{hipoteses: (string|null)[], glaucoma: string|null, hipertensao: string|null}} respostas
+   * @returns {string}
+   */
+  _templateCassems(nomePaciente, dataHoje, respostas) {
     const nomeEscapado = escapeHtml(nomePaciente);
 
-    const hipoteses = [
-      "Retinopatia Diabética",
-      "Degeneração Macular Relacionada à Idade (DMRI)",
-      "Oclusão Venosa Retiniana",
-      "Distrofias",
-      "Membrana Epirretiniana",
-      "Membrana Neovascular Sub-Retiniana",
-      "Edema Macular",
-      "Buraco Macular",
-      "Diagnóstico Confirmado de Glaucoma",
-      "Afinamento do Anel Neural",
-    ];
-
-    const linhasHipoteses = hipoteses
-      .map(
-        (h) => `
+    const linhasHipoteses = HIPOTESES_CASSEMS.map(
+      (h, i) => `
         <tr>
           <td class="cassems-td-label">${h}</td>
-          <td class="cassems-td-simnao">( &nbsp;) Sim &nbsp; ( &nbsp;) Não</td>
+          <td class="cassems-td-simnao">${this._marcarSimNao(respostas.hipoteses[i])}</td>
         </tr>`,
-      )
-      .join("");
+    ).join("");
 
     return `
       <div class="cassems-folha">
@@ -215,7 +272,7 @@ window.Modules.laudos = {
             <tr>
               <td class="cassems-td-pergunta" colspan="2">
                 <p class="cassems-pergunta-titulo">Suspeita de Glaucoma?</p>
-                <p class="cassems-pergunta-opcoes">( &nbsp;) Sim &nbsp;&nbsp; ( &nbsp;) Não</p>
+                <p class="cassems-pergunta-opcoes">${this._marcarSimNao(respostas.glaucoma, "&nbsp;&nbsp;")}</p>
               </td>
             </tr>
             <tr>
@@ -230,7 +287,7 @@ window.Modules.laudos = {
             <tr>
               <td class="cassems-td-pergunta" colspan="2">
                 <p class="cassems-pergunta-titulo">Hipertensão Ocular?</p>
-                <p class="cassems-pergunta-opcoes">( &nbsp;) Sim &nbsp;&nbsp; ( &nbsp;) Não</p>
+                <p class="cassems-pergunta-opcoes">${this._marcarSimNao(respostas.hipertensao, "&nbsp;&nbsp;")}</p>
               </td>
             </tr>
             <tr>
@@ -253,10 +310,11 @@ window.Modules.laudos = {
         <footer class="cassems-rodape">
           <p class="cassems-rodape-data">Data: ${dataHoje}</p>
           <div class="cassems-assinatura">
-            <div class="cassems-linha-assinatura"></div>
-            <p class="cassems-carimbo-nome">Dr. Dante Orondjian Verardo</p>
-            <p class="cassems-carimbo-info">Médico Oftalmologista</p>
-            <p class="cassems-carimbo-info">CRM/MS 5858 – RQE 4243</p>
+            <img
+              src="assets/assinaturadrdante.png"
+              alt="Assinatura e carimbo — Dr. Dante Orondjian Verardo, CRM/MS 5858"
+              class="cassems-assinatura-img"
+            />
           </div>
         </footer>
 
