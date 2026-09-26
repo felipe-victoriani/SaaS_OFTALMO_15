@@ -311,7 +311,7 @@ window.Modules.laudos = {
           <p class="cassems-rodape-data">Data: ${dataHoje}</p>
           <div class="cassems-assinatura">
             <img
-              src="assets/assinaturadrdante.png"
+              src="img/assinaturadrdante.png"
               alt="Assinatura e carimbo — Dr. Dante Orondjian Verardo, CRM/MS 5858"
               class="cassems-assinatura-img"
             />
