@@ -3,8 +3,8 @@
 // ================================================================
 "use strict";
 
-const CACHE_NAME = "oftalmo15-v20";
-const CACHE_STATIC = "oftalmo15-static-v20";
+const CACHE_NAME = "oftalmo15-v21";
+const CACHE_STATIC = "oftalmo15-static-v21";
 
 // Assets para cache imediato (Cache First)
 const STATIC_ASSETS = [
@@ -103,25 +103,29 @@ self.addEventListener("fetch", (event) => {
   // Somente GET
   if (request.method !== "GET") return;
 
-  // Cache First para assets estáticos
+  // Network First para assets estáticos (sempre busca a versão mais nova;
+  // cache só serve como fallback offline, evitando ficar preso em código antigo)
   if (STATIC_ASSETS.some((asset) => url.endsWith(asset))) {
     event.respondWith(
-      caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request)
-            .then((response) => {
-              if (response && response.status === 200) {
-                const clone = response.clone();
-                caches.open(CACHE_STATIC).then((c) => c.put(request, clone));
-              }
-              return response;
-            })
-            .catch((err) => {
-              console.warn("[SW] Falha ao carregar asset estático:", url, err);
-              throw err;
-            }),
-      ),
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_STATIC).then((c) => c.put(request, clone));
+          }
+          return response;
+        })
+        .catch((err) => {
+          console.warn(
+            "[SW] Falha de rede em asset estático, servindo do cache:",
+            url,
+            err,
+          );
+          return caches.match(request).then((cached) => {
+            if (cached) return cached;
+            throw err;
+          });
+        }),
     );
     return;
   }

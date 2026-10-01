@@ -1,0 +1,47 @@
+#!/bin/sh
+# Auto-bump da versão de cache do Service Worker.
+#
+# Sempre que um commit altera algum arquivo listado no array STATIC_ASSETS
+# de service-worker.js, este hook incrementa automaticamente CACHE_NAME e
+# CACHE_STATIC (padrão "<app>-v12" -> "<app>-v13") e inclui a mudança no
+# mesmo commit — sem precisar lembrar de fazer isso manualmente.
+#
+# Por quê: assets em Cache First só são revalidados quando o próprio
+# service-worker.js muda de conteúdo (o que dispara install/activate no
+# navegador). Sem o bump, o usuário fica preso numa versão antiga do
+# módulo até um hard refresh. Ver skill meu-stack-vanilla-firebase,
+# seção "Service Worker / PWA — versionamento de cache".
+#
+# Setup em um novo clone/máquina (uma vez só):
+#   git config core.hooksPath .githooks
+
+SW_FILE="service-worker.js"
+[ -f "$SW_FILE" ] || exit 0
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+assets=$(awk '/const STATIC_ASSETS/,/\];/' "$SW_FILE" | grep -oE '"[^"]+"' | tr -d '"' | sed 's#^/##')
+[ -z "$assets" ] && exit 0
+
+changed=0
+for f in $staged; do
+  for a in $assets; do
+    if [ "$f" = "$a" ]; then
+      changed=1
+      break 2
+    fi
+  done
+done
+[ "$changed" -eq 0 ] && exit 0
+
+current=$(sed -nE 's/^const CACHE_NAME = "[^"]*-v([0-9]+)";/\1/p' "$SW_FILE")
+if [ -z "$current" ]; then
+  echo "[pre-commit] aviso: nao foi possivel detectar a versao do cache em $SW_FILE — confirme o bump manualmente." >&2
+  exit 0
+fi
+
+next=$((current + 1))
+sed -i -E "s/-v${current}\"/-v${next}\"/g" "$SW_FILE"
+git add "$SW_FILE"
+echo "[pre-commit] $SW_FILE: cache version bumpada automaticamente v${current} -> v${next} (asset estatico alterado neste commit)"
